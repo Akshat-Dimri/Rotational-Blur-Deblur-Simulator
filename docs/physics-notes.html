@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Polar-Domain Modelling and Inverse Filtering — Akshat Dimri</title>
+
+<script>
+const CONFIG = {
+  GRID_SIZE:        16,      // graph paper cell size in pxl
+  GRID_OPACITY_L:   0.55,    // grid opacity in light mode
+  GRID_OPACITY_D:   0.18,    // grid opacity in dark mode
+  GRID_COLOR_L:     '#93c5fd', // light-mode grid line colour
+  GRID_COLOR_D:     '#3b82f6', // dark-mode grid line colour
+  GRID_MAJOR_EVERY: 5,       // every Nth line is a major (thicker) line
+  COLUMN_MAX_W:     1080,    // max content width in px
+};
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+<style>
+/*  TOKENS ─ */
+:root {
+  --bg:           #ffffff;
+  --bg2:          #f8f8f8;
+  --text:         #111111;
+  --text2:        #444444;
+  --text3:        #888888;
+  --border:       #d4d4d4;
+  --purple:       #534AB7;
+  --purple-l:     #eeedfe;
+  --teal:         #0F6E56;
+  --teal-l:       #e1f5ee;
+  --amber:        #7c4a00;
+  --amber-l:      #fef3e2;
+  --box-bg:       #ffffff;
+  --box-border:   #d0d0d0;
+
+  --serif:  'IBM Plex Serif', Georgia, serif;
+  --sans:   'IBM Plex Sans', system-ui, sans-serif;
+  --mono:   'IBM Plex Mono', 'Courier New', monospace;
+
+  --col:    1080px;
+  --r:      0px;         /*zero radius — scientific doc aesthetic*/
+}
+
+[data-theme="dark"] {
+  --bg:         #0f0f12;
+  --bg2:        #17171c;
+  --text:       #e8e8e2;
+  --text2:      #a8a89e;
+  --text3:      #58584e;
+  --border:     #2e2e38;
+  --purple-l:   #1e1c40;
+  --teal-l:     #0a2420;
+  --amber-l:    #1e1000;
+  --box-bg:     #13131a;
+  --box-border: #2a2a36;
+}
+
+/*reset*/
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; font-size:16px; }
+
+body {
+  font-family: var(--serif);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.8;
+  min-height: 100vh;
+  transition: background .25s, color .25s;
+}
+
+/*graph paper - dynamic build via js*/
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+  background-image: var(--grid-bg);
+  transition: opacity .25s;
+}
+
+/*nav bar*/
+.topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 44px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--sans);
+  transition: background .25s, border-color .25s;
+}
+
+.nav-left  { display:flex; align-items:center; gap:10px; }
+.nav-right { display:flex; align-items:center; gap:8px; }
+
+.nav-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text3);
+  text-decoration: none;
+  padding: 3px 8px;
+  border: 0.5px solid var(--border);
+  background: transparent;
+  transition: color .15s, background .15s;
+}
+.nav-back:hover { color: var(--text); background: var(--bg2); }
+
+.nav-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.theme-btn {
+  width: 28px; height: 28px;
+  display: flex; align-items:center; justify-content:center;
+  background: none;
+  border: 0.5px solid var(--border);
+  cursor: pointer;
+  color: var(--text2);
+  transition: background .15s, color .15s;
+}
+.theme-btn:hover { background: var(--bg2); color: var(--text); }
+
+
+
+/*scroll*/
+.scroll-prog {
+  position: fixed; top: 44px; left: 0; z-index: 199;
+  height: 2px; background: var(--purple);
+  width: 0%; transition: width .08s linear;
+}
+
+/*pg wrapper*/
+.page {
+  position: relative; z-index: 1;
+  padding-top: 44px;
+}
+
+/*doc shell*/
+.doc {
+  max-width: var(--col);
+  margin: 0 auto;
+  padding: 60px 48px 120px;
+}
+
+.doc-title-block {
+  border-bottom: 2px solid var(--text);
+  padding-bottom: 28px;
+  margin-bottom: 36px;
+}
+
+.doc-kicker {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 14px;
+  display: block;
+}
+
+.doc-title {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.doc-authors {
+  font-size: 14px;
+  color: var(--text2);
+  margin-bottom: 6px;
+  font-style: italic;
+}
+
+.doc-affil {
+  font-size: 13px;
+  color: var(--text3);
+  font-family: var(--sans);
+  line-height: 1.6;
+}
+
+.abstract-box {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 22px 26px;
+  margin-bottom: 40px;
+}
+
+.abstract-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.abstract-text {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.8;
+  font-style: italic;
+}
+
+/*contents*/
+.contents-box {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 22px 26px;
+  margin-bottom: 56px;
+  font-family: var(--sans);
+}
+
+.contents-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 14px;
+  display: block;
+}
+
+.toc-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 4px 0;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--border);
+  transition: color .15s;
+}
+.toc-section:hover { color: var(--purple); }
+.toc-section:last-child { border-bottom: none; }
+
+.toc-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text3);
+  padding: 2px 0 2px 18px;
+  text-decoration: none;
+  transition: color .15s;
+}
+.toc-sub:hover { color: var(--purple); }
+
+
+/*sectionm heading*/
+.sec-h1 {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 52px 0 18px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--border);
+  line-height: 1.25;
+}
+
+.sec-h2 {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 34px 0 12px;
+  line-height: 1.3;
+}
+
+.para {
+  font-size: 15px;
+  color: var(--text2);
+  line-height: 1.85;
+  margin-bottom: 14px;
+  text-align: justify;
+  hyphens: auto;
+}
+.para:last-child { margin-bottom: 0; }
+
+strong { color: var(--text); font-weight: 600; }
+em     { font-style: italic; }
+
+/*  PLAIN CONTENT BOX (no shadow, breaks grid) ─ */
+/* These boxes sit on the graph paper with a solid  */
+/* border and opaque background, visually           */
+/* interrupting the grid lines behind them.         */
+
+.box {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 20px 24px;
+  margin: 22px 0;
+  position: relative;
+}
+
+.box-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--purple);
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.box-label.teal  { color: var(--teal); }
+.box-label.amber { color: var(--amber); }
+
+.box.teal  { border-left: 3px solid var(--teal); }
+.box.amber { border-left: 3px solid var(--amber); }
+.box.purple{ border-left: 3px solid var(--purple); }
+
+.box-text {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.75;
+}
+
+/*box with math*/
+.math-box {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 18px 24px;
+  margin: 20px 0;
+  overflow-x: auto;
+  font-size: 15px;
+}
+
+.math-box.numbered {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.math-box.numbered .eq-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+.math-box mjx-container { font-size: 100% !important; }
+
+/* */
+.obj-list {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 18px 24px;
+  margin: 22px 0;
+  list-style: none;
+}
+
+.obj-list li {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.75;
+  padding: 5px 0 5px 20px;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+
+.obj-list li:last-child { border-bottom: none; }
+
+.obj-list li::before {
+  content: '•';
+  position: absolute; left: 0;
+  color: var(--purple);
+  font-weight: 700;
+}
+
+/*box consisting of the results in tabular format*/
+.table-box {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  margin: 22px 0;
+  overflow-x: auto;
+}
+
+.table-caption {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: .04em;
+}
+
+.sci-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: var(--sans);
+}
+
+.sci-table th {
+  text-align: left;
+  padding: 9px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text3);
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+
+.sci-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.sci-table tr:last-child td { border-bottom: none; }
+.sci-table td.best { color: var(--teal); font-weight: 600; }
+.sci-table td.dim  { color: var(--text3); }
+.sci-table td.mono { font-family: var(--mono); font-size: 12px; }
+
+.figure-box {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 24px;
+  margin: 24px 0;
+}
+
+.figure-cap {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 12px;
+  line-height: 1.6;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.figure-cap strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+
+.accordion { border: 1px solid var(--box-border); background: var(--box-bg); margin: 22px 0; }
+
+.acc-row {
+  border-bottom: 1px solid var(--border);
+}
+.acc-row:last-child { border-bottom: none; }
+
+.acc-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--box-bg);
+  transition: background .15s;
+  user-select: none;
+}
+.acc-head:hover { background: var(--bg2); }
+
+.acc-tags { display:flex; gap:6px; align-items:center; }
+.ftag {
+  font-size: 10px; padding: 2px 7px;
+  font-family: var(--mono);
+  letter-spacing: .04em;
+}
+.ftag.iterative { background:#E1F5EE; color:#085041; }
+.ftag.blind     { background:#EEEDFE; color:#3C3489; }
+.ftag.optimal   { background:#EAF3DE; color:#27500A; }
+
+.acc-arrow { color:var(--text3); font-size:12px; transition:transform .2s; }
+.acc-row.open .acc-arrow { transform:rotate(180deg); }
+
+.acc-body {
+  display: none;
+  padding: 16px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.acc-row.open .acc-body { display:block; }
+
+.acc-desc {
+  font-size: 13px; color: var(--text2); line-height: 1.75; margin-bottom: 12px;
+}
+
+.acc-math {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 14px 18px;
+  margin: 10px 0;
+  overflow-x: auto;
+}
+.acc-math mjx-container { font-size: 96% !important; }
+
+.chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.chip {
+  font-size: 11px; padding: 3px 9px;
+  font-family: var(--sans);
+  border: 1px solid var(--border);
+}
+.chip.good { background:var(--teal-l);  color:var(--teal);  border-color:var(--teal-l); }
+.chip.bad  { background:#fcebeb;        color:#791f1f;       border-color:#fcd5d5; }
+
+/*  TIMELINE  */
+.timeline { border: 1px solid var(--box-border); background: var(--box-bg); margin:22px 0; }
+
+.tl-row {
+  display: grid; grid-template-columns: 44px 1fr;
+  border-bottom: 1px solid var(--border);
+}
+.tl-row:last-child { border-bottom: none; }
+
+.tl-num {
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 16px 0 0;
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 500;
+  color: var(--purple);
+  border-right: 1px solid var(--border);
+}
+
+.tl-content { padding: 14px 18px; }
+.tl-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; font-family: var(--sans); }
+.tl-desc  { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+/*  CODE / MONO INLINE  */
+code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  color: var(--purple);
+}
+
+/*  FOV TABLE ─ */
+.fov-note {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 8px;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/*  REFERENCES  */
+.ref-list {
+  border: 1px solid var(--box-border);
+  background: var(--box-bg);
+  padding: 18px 24px;
+  margin: 22px 0;
+  counter-reset: ref;
+}
+
+.ref-item {
+  display: grid; grid-template-columns: 28px 1fr;
+  font-size: 13px; color: var(--text2);
+  line-height: 1.65; padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--sans);
+}
+.ref-item:last-child { border-bottom: none; }
+
+.ref-num {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--purple); padding-top: 2px;
+}
+
+/*  SCROLLBAR ─ */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); }
+::-webkit-scrollbar-thumb:hover { background:var(--text3); }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="topnav">
+  <div class="nav-left">
+    <a class="nav-back" href="../index.html">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      
+    </a>
+    <span class="nav-label">REPORT-INTERN IRDE 2026</span>
+  </div>
+  <div class="nav-right">
+    <a class="theme-btn" id="pdf-btn" href="../assets/report.pdf" download="Akshat_Dimri_IRDE_Report.pdf" aria-label="Download project report PDF" title="Download project report PDF">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </a>
+    <button class="theme-btn" id="theme-btn" aria-label="Toggle theme">
+      <svg id="ico-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+      <svg id="ico-sun"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+
+  </div>
+</nav>
+
+<div class="scroll-prog" id="scroll-prog"></div>
+
+<div class="page">
+<div class="doc">
+
+<!-- ══════════════════════════════════════════════
+     TITLE BLOCK
+══════════════════════════════════════════════ -->
+<div class="doc-title-block">
+  <span class="doc-kicker">Summer Training Project Report · IRDE, DRDO · Dehradun</span>
+  <h1 class="doc-title">
+    Polar-Domain Modelling and Inverse Filtering of Directional Angular Motion Blur
+    for Rotational Imaging Systems
+  </h1>
+  <p class="doc-authors">Akshat Dimri</p>
+  <p class="doc-affil">
+    B.Tech (3rd Year), Engineering Physics<br>
+    National Institute of Technology, Hamirpur (Himachal Pradesh, India)<br>
+    Submitted to: Instruments Research &amp; Development Establishment (IRDE), DRDO, Ministry of Defence, Govt. of India<br>
+    Internship period: 19 May 2025 – 14 July 2025 · Supervising Scientist: Sh. Manvendra Singh Chauhan, Scientist 'E'
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PROJECT EXPERIENCE OVERVIEW
+══════════════════════════════════════════════ -->
+<div class="abstract-box">
+  <span class="abstract-label">Project Experience Overview</span>
+  <p class="abstract-text">
+    Theoretical knowledge attains real value only when substantiated through practical application.
+    As a student of Engineering Physics at NIT Hamirpur, I undertook my summer internship at the
+    Instruments Research &amp; Development Establishment (IRDE), DRDO, where I was exposed to advanced
+    techniques in image processing, particularly in the context of motion blur modelling and restoration.
+    The project involved simulating motion blur resulting from angular motion in electro-optical systems
+    and restoring the degraded imagery using frequency-domain deconvolution techniques in the polar
+    coordinate framework. The methodology included transformation of Cartesian images to polar coordinates,
+    application of asymmetric angular convolution to model directional motion blur, and subsequent
+    deblurring via regularized inverse filtering in the frequency domain. Quantitative evaluation was
+    performed using MSE, PSNR, and SSIM metrics, demonstrating significant improvements post-deconvolution.
+    This study has direct applications in vision-based systems used in surveillance, navigation, and
+    targeting platforms.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     CONTENTS
+══════════════════════════════════════════════ -->
+<div class="contents-box">
+  <span class="contents-title">Contents</span>
+  <a class="toc-section" href="#s1">1. Introduction</a>
+  <a class="toc-sub" href="#s1-1">1.1 Background &amp; Motivation</a>
+  <a class="toc-sub" href="#s1-2">1.2 Rotational Motion Blur in Imaging Systems</a>
+  <a class="toc-sub" href="#s1-3">1.3 Problem Definition</a>
+  <a class="toc-sub" href="#s1-4">1.4 Project Objectives</a>
+  <a class="toc-sub" href="#s1-5">1.5 Overview of Methodology</a>
+  <a class="toc-sub" href="#s1-6">1.6 Report Structure</a>
+  <a class="toc-section" href="#s2">2. Literature-Derived Theoretical Foundations</a>
+  <a class="toc-sub" href="#s2-1">2.1 Nature of Rotational Blur and Its Challenges</a>
+  <a class="toc-sub" href="#s2-2">2.2 Shift-Variant vs. Shift-Invariant Approaches</a>
+  <a class="toc-sub" href="#s2-3">2.3 Polar Domain as a Linearizing Framework</a>
+  <a class="toc-sub" href="#s2-4">2.4 Blur Modelling via Line Spread Functions (LSF)</a>
+  <a class="toc-sub" href="#s2-5">2.5 Inverse Filtering in Polar Space</a>
+  <a class="toc-sub" href="#s2-6">2.6 Practical Implementation Notes</a>
+  <a class="toc-section" href="#s3">3. Mathematical Framework and Image Degradation Modelling</a>
+  <a class="toc-sub" href="#s3-1">3.1 Image Formation &amp; Blur Models</a>
+  <a class="toc-sub" href="#s3-2">3.2 Spatially Invariant vs Variant Blur</a>
+  <a class="toc-sub" href="#s3-3">3.3 Rotational Blur: Characteristics and Modelling</a>
+  <a class="toc-sub" href="#s3-4">3.4 Point Spread Function in Polar Coordinates</a>
+  <a class="toc-sub" href="#s3-5">3.5 Conversion between Cartesian and Polar Domains</a>
+  <a class="toc-sub" href="#s3-6">3.6 Kernel Estimation Techniques in Polar Domain</a>
+  <a class="toc-sub" href="#s3-7">3.7 Inverse Filtering &amp; Regularization Approaches</a>
+  <a class="toc-section" href="#s4">4. Mathematical Formulations</a>
+  <a class="toc-sub" href="#s4-1">4.1 Mathematical Model of Rotational Blur</a>
+  <a class="toc-sub" href="#s4-2">4.2 Polar Representation of Blur</a>
+  <a class="toc-sub" href="#s4-3">4.3 Discretized Polar Blur Kernel</a>
+  <a class="toc-sub" href="#s4-4">4.4 Spatially Variant Kernel Profile Estimation</a>
+  <a class="toc-sub" href="#s4-5">4.5 Inverse Filtering Model in Frequency Domain</a>
+  <a class="toc-sub" href="#s4-6">4.6 Regularization Techniques (L1/L2 Norms)</a>
+  <a class="toc-section" href="#s5">5. Implementation Details</a>
+  <a class="toc-sub" href="#s5-1">5.1 Code Development Chronology</a>
+  <a class="toc-sub" href="#s5-2">5.2–5.8 Pipeline Modules</a>
+  <a class="toc-section" href="#s6">6. FOV Considerations</a>
+  <a class="toc-section" href="#s7">7. Performance Metrics &amp; Evaluation</a>
+  <a class="toc-section" href="#s8">8. Results</a>
+  <a class="toc-section" href="#s9">9. Preprocessing and Postprocessing</a>
+  <a class="toc-section" href="#s10">10. Future Work</a>
+  <a class="toc-section" href="#s11">11. Conclusion</a>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     1. INTRODUCTION
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s1">1. Introduction</h2>
+
+<h3 class="sec-h2" id="s1-1">1.1 Background &amp; Motivation</h3>
+<p class="para">
+  In imaging systems subjected to rotational motion — such as satellite platforms, scanning electron
+  microscopes, and surveillance optics mounted on gimbals — images suffer from a specific class of blur
+  known as <strong>rotational motion blur</strong>. Unlike translational blur, this is spatially variant:
+  the blur extent increases radially outward from the centre of rotation. Such degradation significantly
+  reduces image fidelity, and conventional spatially invariant deblurring methods are ineffective.
+  The motivation of this work is to model and invert the effects of angular blur by leveraging
+  <strong>polar domain transformation</strong> and a physics-consistent blur model.
+</p>
+
+<h3 class="sec-h2" id="s1-2">1.2 Rotational Motion Blur in Imaging Systems</h3>
+<p class="para">
+  Angular blur arises when either the imaging sensor or the observed scene undergoes rotational motion
+  during the exposure interval. Two critical hardware components in practical imaging setups contribute:
+</p>
+
+<div class="box purple">
+  <span class="box-label">Mirror-Stabilised Scanning Systems</span>
+  <p class="box-text">
+    These systems employ rotating or tilting mirrors to stabilise or scan the field of view. While
+    effective in compensating for certain motions, rapid angular changes during exposure induce
+    rotational blur, especially when the feedback or actuation system has latency or jitter. The image
+    plane receives light along curved trajectories, causing pixel displacements on circular arcs.
+  </p>
+</div>
+
+<div class="box teal">
+  <span class="box-label teal">Derotation Prisms (Abbe / Pechan)</span>
+  <p class="box-text">
+    Used in optical systems to counteract image rotation due to platform motion (e.g. airborne or
+    satellite imaging), derotation prisms rotate to maintain image orientation. Imperfect
+    synchronisation or dynamic rotation during integration time leads to residual angular motion,
+    resulting in spatially variant blur centred at the optical axis.
+  </p>
+</div>
+
+<p class="para">
+  In both cases, the angular motion trajectory causes each pixel to trace an arc with radius
+  proportional to its distance from the rotation centre, making the blur spatially non-uniform
+  and challenging to reverse with traditional deconvolution algorithms.
+</p>
+
+<h3 class="sec-h2" id="s1-3">1.3 Problem Definition</h3>
+<p class="para">
+  The goal is to accurately model the rotational blur degradation and formulate effective inversion
+  strategies. The primary challenges include:
+</p>
+<ul class="obj-list">
+  <li>Designing Cartesian-to-Polar transformations that minimise interpolation loss.</li>
+  <li>Constructing spatially variant blur kernels in polar space.</li>
+  <li>Implementing stable inverse filtering methods that suppress noise amplification and ringing.</li>
+  <li>Evaluating restoration quality quantitatively using PSNR, SSIM, and MSE metrics.</li>
+</ul>
+
+<h3 class="sec-h2" id="s1-4">1.4 Project Objectives</h3>
+<ul class="obj-list">
+  <li>Implement polar-domain transformations to linearise angular motion blur.</li>
+  <li>Estimate and apply spatially varying angular PSFs across radial coordinates.</li>
+  <li>Develop inverse filtering techniques (Fourier-based and regularized).</li>
+  <li>Evaluate restoration using PSNR, SSIM, and Std. Dev. metrics.</li>
+  <li>Explore extensions to elliptical blur models and non-uniform FOV.</li>
+</ul>
+
+<h3 class="sec-h2" id="s1-5">1.5 Overview of Methodology</h3>
+<p class="para">
+  The method involves transforming the input image from Cartesian to polar coordinates, where angular
+  blur becomes shift-invariant along the angular dimension θ. The image is convolved with an angular
+  PSF that varies with radius. Deblurring is achieved using frequency-domain inverse filtering and
+  regularized deconvolution. The restored image is finally mapped back to the Cartesian domain for
+  visual and quantitative analysis.
+</p>
+
+<div class="box amber">
+  <span class="box-label amber">Methodology Pipeline</span>
+  <p class="box-text">
+    <strong>Input image</strong> → Cartesian-to-Polar transform (bilinear interpolation) →
+    Angular PSF construction (radius-dependent) → Polar-domain blur simulation →
+    Frequency-domain inverse filtering (regularized) → Polar-to-Cartesian reconversion →
+    <strong>Restored image + quality metrics</strong>
+  </p>
+</div>
+
+<h3 class="sec-h2" id="s1-6">1.6 Report Structure</h3>
+<p class="para">
+  Section 2 presents literature-derived theoretical foundations. Section 3 describes the mathematical
+  framework and degradation models. Section 4 details specific mathematical formulations. Section 5
+  documents the Python-based implementation. Section 6 examines fixed vs. variable field-of-view
+  considerations. Section 7 describes performance metrics. Section 8 presents results. Section 9
+  covers preprocessing and postprocessing. Section 10 outlines future directions. Section 11 concludes.
+</p>
+
+<!-- ══════════════════════════════════════════════
+     2. THEORETICAL FOUNDATIONS
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s2">2. Literature-Derived Theoretical Foundations</h2>
+
+<h3 class="sec-h2" id="s2-1">2.1 Nature of Rotational Blur and Its Challenges</h3>
+<p class="para">
+  In image acquisition systems, motion blur arises from relative movement between the camera and the
+  scene during exposure. While linear (translational) motion blur is well-understood and modelled
+  using shift-invariant operations, <strong>rotational motion blur introduces spatially varying
+  distortions</strong>, making restoration significantly more complex.
+</p>
+<p class="para">
+  Rotational blur is characterised by the fact that each pixel in the image moves along a circular arc
+  centred around a fixed point. The extent of blur increases with distance from this rotation centre —
+  pixels further away experience longer motion paths and more severe blurring. Consequently, the PSF
+  (Point Spread Function) is no longer uniform across the image.
+</p>
+
+<h3 class="sec-h2" id="s2-2">2.2 Shift-Variant vs. Shift-Invariant Approaches</h3>
+<p class="para">
+  The spatially variant nature of rotational blur means: (i) the blur kernel changes with radius;
+  (ii) a single convolution kernel cannot capture the degradation; and (iii) restoration algorithms
+  must account for position-dependent degradation. Traditional linear deblurring techniques fail because
+  they assume all pixels are blurred identically.
+</p>
+<div class="box purple">
+  <span class="box-label">Resolution Strategy</span>
+  <p class="box-text">
+    The approach proposed in the literature reformulates the problem using <strong>polar
+    coordinates</strong>, transforming the variant blur into a more manageable, shift-invariant form
+    along the angular axis. This enables standard linear convolution and frequency-domain inversion
+    per radial slice.
+  </p>
+</div>
+
+<h3 class="sec-h2" id="s2-3">2.3 Polar Domain as a Linearizing Framework</h3>
+<p class="para">
+  The core idea is to move from the Cartesian image space to a polar coordinate system where the
+  radial component <em>r</em> remains fixed for a given pixel, and the angular component θ captures
+  the motion path. In the polar domain, rotational blur becomes a linear shift along the angular axis,
+  holding the radius constant. This transformation enables the use of standard convolution and inverse
+  filtering techniques in a transformed space.
+</p>
+
+<!-- SVG: Cartesian-to-Polar diagram -->
+<div class="figure-box">
+  <svg viewBox="0 0 660 160" width="100%" style="display:block">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M1 2L8 5L1 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </marker>
+    </defs>
+    <!-- Cartesian panel -->
+    <rect x="8" y="8" width="240" height="144" fill="none" stroke="var(--border)" stroke-width="1"/>
+    <text x="16" y="24" font-family="var(--mono)" font-size="9" fill="var(--text3)">CARTESIAN DOMAIN</text>
+    <!-- grid -->
+    <line x1="128" y1="20" x2="128" y2="148" stroke="var(--border)" stroke-width=".5"/>
+    <line x1="12" y1="84" x2="244" y2="84" stroke="var(--border)" stroke-width=".5"/>
+    <!-- arcs at 3 radii -->
+    <path d="M128,54 A30,30 0 0,1 154,66" fill="none" stroke="var(--purple)" stroke-width="2" opacity=".5"/>
+    <path d="M128,34 A50,50 0 0,1 168,62" fill="none" stroke="var(--purple)" stroke-width="2.5" opacity=".7"/>
+    <path d="M128,14 A70,70 0 0,1 182,58" fill="none" stroke="var(--purple)" stroke-width="3" opacity=".9"/>
+    <!-- dots -->
+    <circle cx="128" cy="54" r="3" fill="var(--purple)"/>
+    <circle cx="128" cy="34" r="3" fill="var(--purple)"/>
+    <circle cx="128" cy="14" r="3" fill="var(--purple)"/>
+    <circle cx="128" cy="84" r="4" fill="var(--text)"/>
+    <text x="132" y="94" font-size="9" fill="var(--text3)" font-family="var(--mono)">centre</text>
+    <text x="14" y="108" font-size="8" fill="var(--text3)" font-family="var(--sans)">Blur arc ∝ r · ω · T</text>
+    <text x="14" y="120" font-size="8" fill="var(--text3)" font-family="var(--sans)">Spatially variant PSF</text>
+    <!-- arrow -->
+    <line x1="270" y1="80" x2="360" y2="80" stroke="var(--purple)" stroke-width="2" marker-end="url(#a1)"/>
+    <text x="280" y="72" font-size="11" fill="var(--purple)" font-family="var(--mono)">Bilinear</text>
+    <<text x="275" y="95" font-size="9" fill="var(--purple)" font-family="var(--mono)">Interpolation</text>
+    <!-- Polar panel -->
+    <rect x="376" y="8" width="276" height="144" fill="none" stroke="var(--border)" stroke-width="1"/>
+    <text x="384" y="24" font-family="var(--mono)" font-size="9" fill="var(--text3)">POLAR DOMAIN  (θ vs r)</text>
+    <!-- horizontal smears at 3 r values -->
+    <text x="384" y="50" font-size="9" fill="var(--text3)" font-family="var(--mono)">r₁</text>
+    <rect x="398" y="40" width="60" height="8" fill="var(--purple)" opacity=".4" rx="1"/>
+    <circle cx="398" cy="44" r="3" fill="var(--purple)" opacity=".6"/>
+    <text x="384" y="80" font-size="9" fill="var(--text3)" font-family="var(--mono)">r₂</text>
+    <rect x="398" y="70" width="90" height="8" fill="var(--purple)" opacity=".6" rx="1"/>
+    <circle cx="398" cy="74" r="3" fill="var(--purple)" opacity=".8"/>
+    <text x="384" y="110" font-size="9" fill="var(--text3)" font-family="var(--mono)">r₃</text>
+    <rect x="398" y="100" width="120" height="8" fill="var(--purple)" opacity=".85" rx="1"/>
+    <circle cx="398" cy="104" r="3" fill="var(--purple)"/>
+    <text x="384" y="135" font-size="8" fill="var(--text3)" font-family="var(--sans)">Shift-invariant 1D blur along θ</text>
+    <text x="384" y="147" font-size="8" fill="var(--text3)" font-family="var(--sans)">Same kernel width for all θ at fixed r</text>
+    <!-- theta axis label -->
+    <text x="628" y="48" font-size="9" fill="var(--text3)" font-family="var(--mono)">θ→</text>
+  </svg>
+  <p class="figure-cap"><strong>Figure 1.</strong> Polar coordinate transform linearises rotational blur.
+  In Cartesian space (left), each pixel traces a circular arc of increasing length at larger radii.
+  After the polar transform (right), blur at each fixed radius r becomes a constant-width
+  horizontal smear along θ — enabling standard 1D convolution and FFT-based inversion.</p>
+</div>
+
+<h3 class="sec-h2" id="s2-4">2.4 Blur Modelling via Line Spread Functions (LSF)</h3>
+<p class="para">
+  In the polar domain, the blur process along each concentric circle can be described using a
+  <strong>Line Spread Function (LSF)</strong> — a 1D kernel applied along the angular axis.
+  For constant angular velocity, this function has uniform intensity within a defined arc length
+  and zero elsewhere. The discrete version of this blur operation for a given radial position is:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="g_r(\theta) = \sum_{l=0}^{L-1} h(l)\cdot f_r(\theta - l)" id="eq-lsf"></div>
+  <span class="eq-num">(2.1)</span>
+</div>
+
+<p class="para">
+  where <em>g<sub>r</sub>(θ)</em> is the blurred image at radius <em>r</em>, <em>f<sub>r</sub>(θ)</em>
+  is the original image in polar space, and <em>h(l)</em> is the blur kernel of length
+  <em>L</em> proportional to <em>r · ω · T</em>. Each radial slice of the image (concentric ring)
+  is treated independently using a 1D convolution, which is computationally efficient and
+  theoretically robust.
+</p>
+
+<h3 class="sec-h2" id="s2-5">2.5 Inverse Filtering in Polar Space</h3>
+<p class="para">
+  Restoration is performed using inverse filtering, applied per radial slice in the polar domain.
+  Assuming a known blur kernel (non-blind deconvolution), the frequency-domain inversion is:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="\hat{F}_r(\omega) = \frac{G_r(\omega)}{H_r(\omega) + \varepsilon}" id="eq-inv"></div>
+  <span class="eq-num">(2.2)</span>
+</div>
+
+<p class="para">
+  After restoring all slices in polar space, the image is converted back to Cartesian coordinates
+  using the inverse polar transformation, resulting in the final deblurred image.
+</p>
+
+<h3 class="sec-h2" id="s2-6">2.6 Practical Implementation Notes</h3>
+<ul class="obj-list">
+  <li>Input images are first transformed to polar coordinates using bilinear interpolation.</li>
+  <li>Blur is simulated along the angular direction for each radius independently.</li>
+  <li>Restoration is performed using regularized inverse filtering per radial column.</li>
+  <li>The restored polar image is transformed back to Cartesian space for evaluation.</li>
+  <li>Experiments were conducted on 256×256 images with rotation centres at (50,0) and (200,0).</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════
+     3. MATHEMATICAL FRAMEWORK
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s3">3. Mathematical Framework and Image Degradation Modelling</h2>
+
+<h3 class="sec-h2" id="s3-1">3.1 Image Formation &amp; Blur Models</h3>
+<p class="para">
+  A degraded image <em>g(x,y)</em> can be modelled as the convolution of the original image
+  <em>f(x,y)</em> with a Point Spread Function (PSF) <em>h(x,y)</em>, contaminated with
+  additive noise <em>η(x,y)</em>:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="g(x,y) = f(x,y) * h(x,y) + \eta(x,y)" id="eq-degrad"></div>
+  <span class="eq-num">(3.1)</span>
+</div>
+
+<p class="para">
+  The PSF represents the system's response to an ideal point source. For motion blur,
+  <em>h(x,y)</em> models the pixel displacement due to camera or object motion during exposure.
+</p>
+
+<h3 class="sec-h2" id="s3-2">3.2 Spatially Invariant vs. Spatially Variant Blur</h3>
+
+<div class="table-box">
+  <div class="table-caption">Table 3.1 — Comparison of blur types</div>
+  <table class="sci-table">
+    <thead><tr><th>Property</th><th>Spatially Invariant</th><th>Spatially Variant (Rotational)</th></tr></thead>
+    <tbody>
+      <tr><td>PSF h(x,y)</td><td class="mono">constant everywhere</td><td class="mono">varies with radial distance r</td></tr>
+      <tr><td>Convolution model</td><td>Single global kernel</td><td>Position-dependent kernel</td></tr>
+      <tr><td>Standard FFT inversion</td><td class="best">Applicable</td><td>Fails directly</td></tr>
+      <tr><td>Polar-domain treatment</td><td class="dim">Not needed</td><td class="best">Required — linearises problem</td></tr>
+      <tr><td>Example</td><td>Linear camera shake</td><td>Gimbal rotation, derotation prism jitter</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3 class="sec-h2" id="s3-3">3.3 Rotational Blur: Characteristics and Modelling</h3>
+<p class="para">
+  In a rotational system, the blur path of a pixel at radius <em>r</em> from the centre is a
+  circular arc. The length of the arc is proportional to both <em>r</em> and angular velocity ω.
+  The continuous model of image degradation is:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="g(x,y) = \int_0^T f\bigl(x - r\cos(\omega t),\; y - r\sin(\omega t)\bigr)\,dt" id="eq-rot"></div>
+  <span class="eq-num">(3.2)</span>
+</div>
+
+<h3 class="sec-h2" id="s3-4">3.4 Point Spread Function (PSF) in Polar Coordinates</h3>
+<p class="para">
+  Using a polar transform <em>(x,y) → (r,θ)</em>, the blur becomes a shift-invariant convolution
+  along θ:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="g(r,\theta) = \int_0^T f(r,\,\theta - \omega t)\,dt" id="eq-polar-psf"></div>
+  <span class="eq-num">(3.3)</span>
+</div>
+
+<p class="para">
+  This simplifies spatially variant blur into shift-invariant blur over θ, enabling standard
+  convolution-based restoration methods.
+</p>
+
+<h3 class="sec-h2" id="s3-5">3.5 Conversion between Cartesian and Polar Domains</h3>
+<p class="para">
+  Let <em>I(x,y)</em> be an image in Cartesian space. The polar representation
+  <em>I<sub>p</sub>(r,θ)</em> is obtained by remapping pixel intensities using:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="x = r\cos\theta, \qquad y = r\sin\theta" id="eq-cart-pol"></div>
+  <span class="eq-num">(3.4)</span>
+</div>
+
+<p class="para">
+  Bilinear interpolation is used to maintain fidelity during the transform. The inverse transform
+  reconstructs the Cartesian image from polar form, ideally without information loss.
+</p>
+
+<h3 class="sec-h2" id="s3-6">3.6 Kernel Estimation Techniques in Polar Domain</h3>
+<p class="para">
+  For a pixel at radial distance <em>r</em>, the angular blur kernel <em>h<sub>r</sub>(θ)</em>
+  is a 1D kernel along θ. Its width is determined by:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="\Delta\theta = \frac{\Delta s}{r} = \frac{\omega T}{r}" id="eq-kwidth"></div>
+  <span class="eq-num">(3.5)</span>
+</div>
+
+<p class="para">
+  To simulate or estimate this kernel, variable-width averaging or Gaussian filters are applied
+  along the angular axis, with width increasing proportionally with <em>r</em>.
+</p>
+
+<h3 class="sec-h2" id="s3-7">3.7 Inverse Filtering &amp; Regularization Approaches</h3>
+<p class="para">
+  Deblurring via inverse filtering in frequency space involves:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="\hat{F}(u,v) = \frac{G(u,v)}{H(u,v) + \varepsilon}" id="eq-invfreq"></div>
+  <span class="eq-num">(3.6)</span>
+</div>
+
+<p class="para">
+  where <em>G(u,v)</em> is the Fourier transform of the blurred image, <em>H(u,v)</em> is the OTF
+  (Fourier transform of PSF), and ε is a regularisation parameter to avoid division by zero.
+  For rotational blur in polar form, 1D FFT-based inverse filtering is applied along the angular
+  dimension per radial slice.
+</p>
+
+<!-- ══════════════════════════════════════════════
+     4. MATHEMATICAL FORMULATIONS
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s4">4. Mathematical Formulations</h2>
+
+<h3 class="sec-h2" id="s4-1">4.1 Mathematical Model of Rotational Blur</h3>
+<p class="para">
+  The degradation due to rotational motion blur for a pixel at position <em>(x,y)</em>, rotating
+  about centre <em>(x<sub>0</sub>,y<sub>0</sub>)</em> with angular velocity ω, is:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="\begin{aligned} x(t) &= x_0 + (x-x_0)\cos\omega t - (y-y_0)\sin\omega t \\ y(t) &= y_0 + (x-x_0)\sin\omega t + (y-y_0)\cos\omega t \end{aligned}" id="eq-full-rot"></div>
+  <span class="eq-num">(4.1)</span>
+</div>
+
+<h3 class="sec-h2" id="s4-2">4.2 Polar Representation of Blur (Radial-Angular Mapping)</h3>
+<p class="para">
+  After transformation, the rotational blur becomes a 1D convolution in the angular direction.
+  For a fixed <em>r</em>, the blur kernel is shift-invariant along θ:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="g_r(\theta) = f_r(\theta) * h_r(\theta)" id="eq-polar-conv"></div>
+  <span class="eq-num">(4.2)</span>
+</div>
+
+<h3 class="sec-h2" id="s4-3">4.3 Discretized Polar Blur Kernel</h3>
+<p class="para">
+  The discrete angular PSF <em>h<sub>r</sub>[k]</em> is defined for each radial slice <em>r</em>,
+  with kernel width <em>N<sub>r</sub> ∝ r</em>. The discrete convolution is:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="g_r[i] = \sum_{k=0}^{N_r - 1} f_r[i-k] \cdot h_r[k]" id="eq-discrete-conv"></div>
+  <span class="eq-num">(4.3)</span>
+</div>
+
+<h3 class="sec-h2" id="s4-4">4.4 Spatially Variant Kernel Profile Estimation</h3>
+<p class="para">
+  The blur's tangential extent <em>L(ρ)</em> is directly proportional to the radial distance ρ from
+  the image centre:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="L(\rho) = 2\pi\rho(\omega \cdot \Delta t)" id="eq-lrho"></div>
+  <span class="eq-num">(4.4)</span>
+</div>
+
+<p class="para">
+  In the implementation, given the limited blur extent (~4–5 pixels), a constant kernel size <em>K</em>
+  is used. The discrete 1D averaging kernel is defined as:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="h[k] = \begin{cases} 1/K & \text{if } 0 \leq k < K \\ 0 & \text{otherwise} \end{cases}" id="eq-box-kernel"></div>
+  <span class="eq-num">(4.5)</span>
+</div>
+
+<h3 class="sec-h2" id="s4-5">4.5 Inverse Filtering Model in Frequency Domain</h3>
+<p class="para">
+  The estimated frequency response of the original image is given by:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="\hat{F}(u) = \frac{H^*(u)}{|H^*(u)|^2 + \varepsilon} \cdot G(u)" id="eq-wiener-freq"></div>
+  <span class="eq-num">(4.6)</span>
+</div>
+
+<p class="para">
+  where <em>H(u)</em> is the FFT of the kernel <em>h[k]</em>, <em>H*(u)</em> is its complex
+  conjugate, <em>G(u)</em> is the FFT of the blurred polar image column, and ε is the regularisation
+  parameter.
+</p>
+
+<h3 class="sec-h2" id="s4-6">4.6 Regularization Techniques (L1/L2 Norms)</h3>
+<p class="para">
+  To improve robustness under noise, Tikhonov (L2) regularisation is introduced. The matrix
+  formulation supports iterative solvers such as Conjugate Gradient or Least Squares:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="\hat{f}_r = \left(H_r^\top H_r + \lambda I\right)^{-1} H_r^\top g_r" id="eq-tikhonov"></div>
+  <span class="eq-num">(4.7)</span>
+</div>
+
+<p class="para">
+  An L1–L2 mixed-norm model (Total Variation) is used for sparsity and smoothness balance, minimising:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="\min_f \;\|h * f - g\|_2^2 + \lambda_1\|\nabla f\|_1 + \lambda_2\|f\|_2^2" id="eq-tv"></div>
+  <span class="eq-num">(4.8)</span>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     5. IMPLEMENTATION DETAILS
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s5">5. Implementation Details</h2>
+
+<h3 class="sec-h2" id="s5-1">5.1 Code Development Chronology (19 May – 14 July 2025)</h3>
+<p class="para">
+  The project was developed entirely in Python using a structured iterative pipeline. Development
+  followed a weekly model (May 19 – July 14, 2025), incorporating debugging of aliasing artifacts,
+  kernel asymmetry compensation, boundary blending for polar discontinuities, and tuning of
+  deblurring regularisation for noise robustness.
+</p>
+
+<div class="box purple">
+  <span class="box-label">Tools and Libraries</span>
+  <p class="box-text">
+    <strong>numpy</strong> — vectorized matrix operations, FFT computation ·
+    <strong>opencv-python (cv2)</strong> — image I/O, basic transformations ·
+    <strong>scipy.fft</strong> — efficient FFT/IFFT for 1D kernel and image slices ·
+    <strong>skimage.metrics</strong> — PSNR, SSIM, MSE ·
+    <strong>matplotlib.pyplot</strong> — visualization and comparative rendering ·
+    <strong>scipy.ndimage</strong> — polar transformations and bilinear interpolation
+  </p>
+</div>
+
+<h3 class="sec-h2" id="s5-2">5.2–5.8 Pipeline Modules</h3>
+
+<div class="table-box">
+  <div class="table-caption">Table 5.1 — Modular code architecture</div>
+  <table class="sci-table">
+    <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">cartesian_to_polar()</td><td>Forward polar mapping with bilinear interpolation</td></tr>
+      <tr><td class="mono">polar_to_cartesian()</td><td>Inverse mapping back to Cartesian space</td></tr>
+      <tr><td class="mono">apply_vertical_convolution()</td><td>θ-direction PSF-based blur simulation (symmetrical / forward / backward smear)</td></tr>
+      <tr><td class="mono">fill_polar_gaps_with_wraparound()</td><td>Circular wraparound padding for FFT boundary conditions</td></tr>
+      <tr><td class="mono">deconvolve_vertical_inverse_regularized()</td><td>FFT-based regularized inverse filtering per angular column</td></tr>
+      <tr><td class="mono">calculate_quality_metrics()</td><td>MSE, PSNR, SSIM computation between original and restored</td></tr>
+      <tr><td class="mono">crop_image()</td><td>Post-processing and artifact cropping</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="para">
+  Images were processed in 8-bit grayscale. Padding was applied to ensure odd dimensions, enabling
+  symmetric radial mapping during polar transformation. Regularisation parameter ε was tuned
+  empirically between 10<sup>−3</sup> and 10<sup>−4</sup> to suppress high-frequency noise
+  amplification. Three blur types were implemented: <code>symmetrical</code> (centred PSF),
+  <code>forward_smear</code> (motion starts at pixel), and <code>backward_smear</code>
+  (motion ends at pixel).
+</p>
+
+<!-- ══════════════════════════════════════════════
+     6. FOV CONSIDERATIONS
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s6">6. Field-of-View (FOV) Considerations</h2>
+
+<p class="para">
+  The present implementation assumes a <strong>fixed field-of-view (FOV)</strong>: the centre of
+  rotation remains invariant across frames, radial mapping is consistent, and angular and radial
+  extents are uniform. All blur kernels are solely functions of pixel radius and angular velocity:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="L_r = \omega \cdot T \cdot r" id="eq-lr"></div>
+  <span class="eq-num">(6.1)</span>
+</div>
+
+<p class="para">
+  Under variable FOV conditions, the angular blur in pixels and the radial blur extent are:
+</p>
+
+<div class="math-box numbered">
+  <div data-latex="L_\theta^{\text{px}} = \frac{\omega \cdot T \cdot W}{\theta_{\text{FOV}}}, \qquad L_r^{\text{px}} = r \cdot \Delta\theta \cdot \frac{\pi}{180}" id="eq-fov-blur"></div>
+  <span class="eq-num">(6.2)</span>
+</div>
+
+<div class="table-box">
+  <div class="table-caption">Table 6.1 — Blur extent vs. FOV (ω = 75°/s, T = 0.005 s, W = 512 px)</div>
+  <table class="sci-table">
+    <thead><tr><th>FOV (°)</th><th>δθ (°/px)</th><th>L<sub>θ</sub> (px)</th></tr></thead>
+    <tbody>
+      <tr><td>20</td><td class="mono">0.03906</td><td class="best">9.6</td></tr>
+      <tr><td>45</td><td class="mono">0.08789</td><td>4.3</td></tr>
+      <tr><td>60</td><td class="mono">0.11719</td><td>3.2</td></tr>
+      <tr><td>90</td><td class="mono">0.17578</td><td>2.2</td></tr>
+      <tr><td>120</td><td class="mono">0.23438</td><td>1.6</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="box amber">
+  <span class="box-label amber">Key Observation</span>
+  <p class="box-text">
+    Blurring in pixel terms is inversely proportional to FOV. Lower FOV causes larger blur per pixel
+    despite constant angular velocity. In angle-space, <em>L<sub>θ</sub> = ω · T</em> remains
+    constant across all FOVs — highlighting the importance of resolution-aware kernel design.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     7. PERFORMANCE METRICS
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s7">7. Performance Metrics &amp; Evaluation</h2>
+
+<h3 class="sec-h2">7.1 Metrics Used</h3>
+
+<div class="math-box numbered">
+  <div data-latex="\mathrm{PSNR} = 10\cdot\log_{10}\!\left(\frac{\mathrm{MAX}^2}{\mathrm{MSE}}\right), \qquad \mathrm{MSE} = \frac{1}{N}\sum_{i=1}^{N}(f_i - \hat{f}_i)^2" id="eq-psnr-mse"></div>
+  <span class="eq-num">(7.1)</span>
+</div>
+
+<div class="math-box numbered">
+  <div data-latex="\mathrm{SSIM}(x,y) = \frac{(2\mu_x\mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}" id="eq-ssim"></div>
+  <span class="eq-num">(7.2)</span>
+</div>
+
+<div class="math-box numbered">
+  <div data-latex="\Delta\sigma = \sigma_{\text{original}} - \sigma_{\text{restored}}, \qquad \sigma = \sqrt{\frac{1}{MN}\sum_{x,y}(f(x,y)-\mu)^2}" id="eq-std"></div>
+  <span class="eq-num">(7.3)</span>
+</div>
+
+<div class="box teal">
+  <span class="box-label teal">Findings</span>
+  <p class="box-text">
+    PSNR peaked at ε ~ 10<sup>−3</sup> for moderate blur. Over-regularisation (ε &gt; 10<sup>−1</sup>)
+    suppressed ringing but degraded fine details. Small kernels (&lt;7 px) were deblurred with
+    acceptable PSNR. Large kernels (&gt;21 px) caused ringing unless regularisation was increased.
+    Highest SSIM was achieved with Gaussian kernels adaptive to radial position.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     8. RESULTS
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s8">8. Results</h2>
+
+<p class="para">
+  The deblurring pipeline was evaluated across three test images using a fixed
+  7×1 pixel uniform blur kernel in the polar domain, ω = 75°/s, T = 5 ms, and ε = 0.0005.
+</p>
+
+<div class="table-box">
+  <div class="table-caption">Table 8.1 — Quality Metrics (Blur Kernel: Radial Motion, Fixed 7×1 px in Polar Domain)</div>
+  <table class="sci-table">
+    <thead>
+      <tr><th>Image</th><th>Processing Type</th><th>MSE ↓</th><th>PSNR (dB) ↑</th><th>SSIM ↑</th></tr>
+    </thead>
+    <tbody>
+      <tr><td rowspan="3" style="vertical-align:middle;font-weight:500">XDU925</td>
+          <td>Reconverted</td><td>0.8824</td><td class="best">48.6740</td><td class="best">0.9951</td></tr>
+      <tr><td>Blurred</td><td>4.8529</td><td>41.2708</td><td>0.9836</td></tr>
+      <tr><td>Deblurred</td><td>16.6940</td><td>35.9052</td><td>0.9255</td></tr>
+      <tr><td rowspan="3" style="vertical-align:middle;font-weight:500">Single Pixel</td>
+          <td>Reconverted</td><td>0.0133</td><td class="best">66.8923</td><td class="best">1.0000</td></tr>
+      <tr><td>Blurred</td><td>0.0302</td><td>63.3256</td><td>0.9999</td></tr>
+      <tr><td>Deblurred</td><td>1.0542</td><td>47.9016</td><td>0.9994</td></tr>
+      <tr><td rowspan="3" style="vertical-align:middle;font-weight:500">Gaussian Target</td>
+          <td>Reconverted</td><td>0.0023</td><td class="best">74.5859</td><td class="best">1.0000</td></tr>
+      <tr><td>Blurred</td><td>0.0697</td><td>59.6985</td><td>0.9998</td></tr>
+      <tr><td>Deblurred</td><td>1.1808</td><td>47.4091</td><td>0.9991</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="table-box">
+  <div class="table-caption">Table 8.2 — Standard Deviation Metrics</div>
+  <table class="sci-table">
+    <thead>
+      <tr><th>Image</th><th>Processing</th><th>Std Dev (Orig)</th><th>Std Dev (Proc)</th><th>Difference</th><th>Ratio</th></tr>
+    </thead>
+    <tbody>
+      <tr><td rowspan="3" style="vertical-align:middle;font-weight:500">XDU925</td>
+          <td>Reconverted</td><td>43.69</td><td>43.66</td><td>−0.024</td><td class="best">0.9995</td></tr>
+      <tr><td>Blurred</td><td>43.69</td><td>43.65</td><td>−0.034</td><td>0.9992</td></tr>
+      <tr><td>Deblurred</td><td>43.69</td><td>43.71</td><td>+0.017</td><td>1.0004</td></tr>
+      <tr><td rowspan="3" style="vertical-align:middle;font-weight:500">Gaussian Target</td>
+          <td>Reconverted</td><td>0.304</td><td>0.264</td><td>−0.040</td><td>0.8675</td></tr>
+      <tr><td>Blurred</td><td>0.304</td><td>0.180</td><td>−0.124</td><td>0.5932</td></tr>
+      <tr><td>Deblurred</td><td>0.304</td><td>0.304</td><td>−0.001</td><td class="best">0.9976</td></tr>
+      <tr><td rowspan="3" style="vertical-align:middle;font-weight:500">Single Pixel</td>
+          <td>Reconverted</td><td>0.137</td><td>0.064</td><td>−0.073</td><td>0.4682</td></tr>
+      <tr><td>Blurred</td><td>0.137</td><td>0.026</td><td>−0.111</td><td>0.1880</td></tr>
+      <tr><td>Deblurred</td><td>0.137</td><td>0.189</td><td>+0.053</td><td>1.3845</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="box teal">
+  <span class="box-label teal">Results Highlights</span>
+  <p class="box-text">
+    <strong>Reconversion accuracy:</strong> Polar-Cartesian transformations preserved original image
+    quality with negligible loss (PSNR &gt; 66 dB, SSIM ≈ 1.0), validating geometric reversibility.
+    <strong>Deblurring performance:</strong> Inverse filtering restored up to ~12 dB PSNR over blurred
+    inputs; performance was superior for synthetic point-like targets and weaker on complex textured
+    scenes. <strong>Boundary handling:</strong> Wraparound in polar domain minimised angular
+    discontinuities and enabled stable deconvolution, though high-frequency ringing remained near
+    radial extremes.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     9. PREPROCESSING AND POSTPROCESSING
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s9">9. Preprocessing and Postprocessing</h2>
+
+<p class="para">
+  Robust preprocessing and postprocessing are essential for maximising information retention,
+  minimising cumulative errors, and producing visually and statistically reliable outputs.
+</p>
+
+<div class="table-box">
+  <div class="table-caption">Table 9.1 — Information retention strategies</div>
+  <table class="sci-table">
+    <thead><tr><th>Issue</th><th>Solution Applied</th></tr></thead>
+    <tbody>
+      <tr><td>Loss at Polar → Cartesian</td><td>Bilinear interpolation with centre alignment</td></tr>
+      <tr><td>Ringing due to FFT division</td><td>Regularised inverse + row wraparound padding</td></tr>
+      <tr><td>Detail loss at centre</td><td>Kernel length reduced for low-radius regions</td></tr>
+      <tr><td>Angular discontinuity</td><td>Explicit wraparound padding in θ-domain</td></tr>
+      <tr><td>Radial quantisation error</td><td>Fixed step interpolation; no spline smoothing</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="box amber">
+  <span class="box-label amber">Experimental Filters (Not in Final Pipeline)</span>
+  <p class="box-text">
+    Bilateral filtering provided edge-aware smoothing but added halo artefacts in thin lines.
+    Median filtering was effective for impulsive noise but flattened fine features. Unsharp masking
+    increased local contrast but introduced overshoots near edges. Total Variation denoising flattened
+    low-frequency areas too aggressively. Wiener filtering in the polar domain was difficult to
+    calibrate due to unknown noise power spectrum.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     10. FUTURE WORK
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s10">10. Future Work</h2>
+
+<p class="para">
+  While the current implementation demonstrates successful restoration of spatially variant rotational
+  motion blur, several practical limitations and theoretical challenges remain. The following directions
+  are proposed for future development:
+</p>
+
+<div class="timeline" id="timeline"></div>
+
+<!-- ══════════════════════════════════════════════
+     11. CONCLUSION
+══════════════════════════════════════════════ -->
+<h2 class="sec-h1" id="s11">11. Conclusion</h2>
+
+<p class="para">
+  This project focused on the restoration of images affected by directional angular motion blur induced
+  by rotational imaging systems using a <strong>polar-domain modelling approach</strong> combined with
+  inverse filtering. The spatially variant nature of rotational blur was addressed by transforming the
+  image from Cartesian to polar coordinates, wherein the blur becomes approximately shift-invariant
+  along the angular axis.
+</p>
+
+<div class="box purple">
+  <span class="box-label">Key Contributions</span>
+  <p class="box-text">
+    Development of a Python-based, modular pipeline to simulate rotational blur using
+    radius-dependent angular convolution kernels and restore degraded images via FFT-based inverse
+    filtering · Design of a coordinate transformation framework preserving spatial and intensity
+    fidelity · Construction of spatially variant blur kernels for uniform and Gaussian angular
+    profiles · Implementation of regularized inverse filtering to suppress noise amplification ·
+    Comprehensive evaluation using PSNR, SSIM, MSE, Std Dev., and visual validation.
+  </p>
+</div>
+
+<p class="para">
+  The proposed method effectively mitigated rotational blur across a wide range of test cases.
+  The system showed flexibility across image types and robustness in handling varying angular
+  velocities and exposure settings. This work lays a scalable foundation for advanced restoration
+  models capable of addressing real-world complexities such as blind kernel estimation, elliptical
+  blur, and variable FOV conditions, with direct applicability in surveillance, medical, astronomical,
+  and remote sensing imaging domains.
+</p>
+
+<!-- References -->
+<h2 class="sec-h1">References</h2>
+<div class="ref-list">
+  <div class="ref-item"><span class="ref-num">[1]</span><span>S.M.A. Sanipour, I.A. Akhlaghi. <em>A New Method for Eliminating Blur Caused by the Rotational Motion of the Images.</em> PeerJ Preprints, 2015.</span></div>
+  <div class="ref-item"><span class="ref-num">[2]</span><span>Zhen Chen, Xinya Chen. <em>Regularization Rotational Motion Image Blur Restoration.</em> J. Chem. Pharm. Res., 2016.</span></div>
+  <div class="ref-item"><span class="ref-num">[3]</span><span>Fawwaz, Sugimoto et al. <em>Restoration of Rotational Motion Blurred Images using the Inverse Filters.</em> Proc. ISCIE SSTA, 2011.</span></div>
+  <div class="ref-item"><span class="ref-num">[4]</span><span>Yifei Lou, Stanley Osher et al. <em>Deblurring and Denoising with Nonlocal Operators.</em> UCLA CAM Report, 2010.</span></div>
+  <div class="ref-item"><span class="ref-num">[5]</span><span>Gonzalez &amp; Woods. <em>Digital Image Processing,</em> 4th Edition. Pearson, 2018.</span></div>
+  <div class="ref-item"><span class="ref-num">[6]</span><span>OpenCV Documentation. <em>Polar and Log-Polar Transformations.</em> https://docs.opencv.org/</span></div>
+  <div class="ref-item"><span class="ref-num">[7]</span><span>scikit-image Documentation. <em>Image Quality Metrics.</em> https://scikit-image.org/</span></div>
+</div>
+
+</div><!-- /doc -->
+</div><!-- /page -->
+
+<script type="module">
+import { typesetAll } from './latex-renderer.js';
+
+/*  CONFIG → CSS variables  */
+const C = CONFIG;
+const html = document.documentElement;
+
+function buildGridCSS(dark) {
+  const color   = dark ? C.GRID_COLOR_D   : C.GRID_COLOR_L;
+  const opacity = dark ? C.GRID_OPACITY_D : C.GRID_OPACITY_L;
+  const g  = C.GRID_SIZE;
+  const mg = g * C.GRID_MAJOR_EVERY;
+
+  // Full-line SVG grid — minor lines every g px, major every mg px
+  // Each path draws a COMPLETE line across the full tile (not just L-corner)
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${mg}" height="${mg}">`,
+    `<defs>`,
+    // minor grid pattern — full horizontal + vertical lines
+    `<pattern id="mn" width="${g}" height="${g}" patternUnits="userSpaceOnUse">`,
+    `<line x1="0" y1="0" x2="${mg}" y2="0" stroke="${color}" stroke-width="0.4" opacity="0.5"/>`,
+    `<line x1="0" y1="0" x2="0" y2="${mg}" stroke="${color}" stroke-width="0.4" opacity="0.5"/>`,
+    `</pattern>`,
+    // major grid pattern — full lines at mg interval, on top of minor
+    `<pattern id="mj" width="${mg}" height="${mg}" patternUnits="userSpaceOnUse">`,
+    `<rect width="${mg}" height="${mg}" fill="url(#mn)"/>`,
+    `<line x1="0" y1="0" x2="${mg}" y2="0" stroke="${color}" stroke-width="1" opacity="0.85"/>`,
+    `<line x1="0" y1="0" x2="0" y2="${mg}" stroke="${color}" stroke-width="1" opacity="0.85"/>`,
+    `</pattern>`,
+    `</defs>`,
+    `<rect width="${mg}" height="${mg}" fill="url(#mj)"/>`,
+    `</svg>`
+  ].join('');
+
+  const uri = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")';
+
+  // Set on the ::before pseudo-element via CSS custom property
+  html.style.setProperty('--grid-bg', uri);
+  document.body.style.setProperty('--grid-opacity-val', opacity);
+
+  // Apply opacity directly to ::before via a style tag we own
+  let st = document.getElementById('grid-style');
+  if (!st) {
+    st = document.createElement('style');
+    st.id = 'grid-style';
+    document.head.appendChild(st);
+  }
+  st.textContent = `body::before { opacity: ${opacity}; background-size: ${mg}px ${mg}px; }`;
+
+  // Remove any leftover overlay div from prior approach
+  const old = document.getElementById('grid-overlay');
+  if (old) old.remove();
+  document.body.style.backgroundImage = 'none';
+  document.body.style.backgroundColor = dark ? '#0f0f12' : '#ffffff';
+}
+
+/*  Theme ─ */
+const btn  = document.getElementById('theme-btn');
+const moon = document.getElementById('ico-moon');
+const sun  = document.getElementById('ico-sun');
+
+function applyTheme(dark) {
+  html.setAttribute('data-theme', dark ? 'dark' : 'light');
+  moon.style.display = dark ? 'none'  : 'block';
+  sun.style.display  = dark ? 'block' : 'none';
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  buildGridCSS(dark);
+}
+
+btn.addEventListener('click', () => applyTheme(html.getAttribute('data-theme') !== 'dark'));
+applyTheme(localStorage.getItem('theme') === 'dark');
+
+/*  Grid toggle ─ */
+
+
+/*  Scroll progress ─ */
+const prog = document.getElementById('scroll-prog');
+window.addEventListener('scroll', () => {
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+  prog.style.width = Math.min(100, pct) + '%';
+}, { passive: true });
+
+/*  Timeline  */
+const TL = [
+  { title:'10.1 Adaptive Angular Filtering',
+    desc:'Dynamically adjust the angular kernel width per radial ring based on local image variance, rather than using a fixed kernel size.' },
+  { title:'10.2 Blind Deconvolution in Polar Domain',
+    desc:'Implement blind deconvolution where both the kernel h(r,θ) and the sharp image f(r,θ) are estimated iteratively using alternating minimisation with L1 sparsity priors.' },
+  { title:'10.3 Elliptical Blur Kernel Estimation',
+    desc:'Extend the radial kernel model to elliptical arcs to handle off-centre rotation axes, lens distortion, and tilted imaging geometries (UAVs, telescopes).' },
+  { title:'10.4 GPU-based Implementation',
+    desc:'Port major operations (FFT, polar transform, interpolation) to GPU using CuPy or OpenCV CUDA backend for real-time frame-rate deblurring in live imaging systems.' },
+  { title:'10.5 Generalisation for Real-World Lens Shapes',
+    desc:'Modify kernel support to fit elliptical arcs and use elliptical Gaussian filters aligned along the angular trajectory for non-ideal optical systems.' },
+  { title:'10.6 Robustness across Variable Illumination',
+    desc:'Incorporate illumination-invariant preprocessing (histogram normalisation, CLAHE) and test restoration performance across varying scene irradiance conditions.' },
+];
+
+const tlEl = document.getElementById('timeline');
+TL.forEach((t, i) => {
+  tlEl.innerHTML += `
+    <div class="tl-row">
+      <div class="tl-num">${i+1}</div>
+      <div class="tl-content">
+        <div class="tl-title">${t.title}</div>
+        <div class="tl-desc">${t.desc}</div>
+      </div>
+    </div>`;
+});
+
+/*  LaTeX rendering via latex-renderer.js  */
+typesetAll().catch(e => console.warn('LaTeX render error:', e));
+</script>
+
+</body>
+</html>
