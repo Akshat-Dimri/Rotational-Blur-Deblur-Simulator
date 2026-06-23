@@ -1,4 +1,4 @@
-/*default light*/
+/* ── CSS custom properties ── */
 :root {
   --bg-primary:    #ffffff;
   --bg-secondary:  #fafaf8;
@@ -13,17 +13,15 @@
   --teal:          #0F6E56;
   --teal-light:    #E1F5EE;
 
-  --topbar-h:  44px;
+  --topbar-h:     44px;
   --col-controls: 210px;
-  --col-info:     264px;
+  --col-info:     248px;
   --radius-sm: 5px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --font-mono: 'JetBrains Mono','Fira Mono','Menlo',monospace;
   --font-ui:   -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
-
-/*dark*/
 
 [data-theme="dark"] {
   --bg-primary:    #18181b;
@@ -37,7 +35,7 @@
   --purple-mid:    #7a74c8;
 }
 
-/*reset for theme*/
+/* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -48,16 +46,19 @@ html, body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s, color 0.2s;
+  overflow: hidden;
 }
 
-/*shell*/
+/* ── App shell: fills viewport exactly on desktop ── */
 .app-shell {
   display: grid;
   grid-template-rows: var(--topbar-h) 1fr;
   height: 100vh;
-  min-height: 560px;
+  width: 100vw;
+  overflow: hidden;
 }
 
+/* ── Topbar ── */
 .topbar {
   display: flex;
   align-items: center;
@@ -66,6 +67,7 @@ html, body {
   border-bottom: 0.5px solid var(--border);
   background: var(--bg-primary);
   z-index: 10;
+  flex-shrink: 0;
   transition: background 0.2s;
 }
 
@@ -77,6 +79,7 @@ html, body {
   border-radius: 50%;
   background: var(--border);
   transition: background 0.3s;
+  flex-shrink: 0;
 }
 .status-dot.ready   { background: #639922; }
 .status-dot.running { background: #EF9F27; }
@@ -102,7 +105,6 @@ html, body {
 }
 .topbar-link:hover { color: var(--text-primary); }
 
-/*toggle btn*/
 .theme-toggle {
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
@@ -118,9 +120,152 @@ html, body {
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
-/*grid formatting*/
+
+/* ── Workspace: 3-column grid, fills remaining height exactly ── */
 .workspace {
   display: grid;
   grid-template-columns: var(--col-controls) 1fr var(--col-info);
+  height: calc(100vh - var(--topbar-h));
   overflow: hidden;
+}
+
+/* ============================================================
+   MOBILE LAYOUT  (≤ 768 px)
+   Order: filter controls → image viewer → info/maths panel
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* allow page scroll */
+  html, body {
+    height: auto;
+    overflow: auto;
+  }
+
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  /* workspace becomes a vertical stack */
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* ── 1. Filter / controls panel ── */
+  .panel-controls {
+    order: 1;
+    overflow-y: visible;
+    border-right: none;
+    border-bottom: 0.5px solid var(--border);
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  /* ── 2. Image viewer panel ── */
+  .panel-images {
+    order: 2;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  /* Stack image cells vertically */
+  .image-strip {
+    display: flex !important;
+    flex-direction: column !important;
+    border-bottom: 0.5px solid var(--border);
+    /* Must NOT be flex:1 / min-height:0 here — let content size it */
+    flex: none;
+  }
+
+  /* Each image cell: explicit height so the canvas area is visible */
+  .image-cell {
+    display: flex;
+    flex-direction: column;
+    border-right: none !important;
+    border-bottom: 0.5px solid var(--border);
+    /* Fixed total height: 36px header + 220px canvas */
+    height: 256px;
+    flex-shrink: 0;
+  }
+  .image-cell:last-child { border-bottom: none; }
+
+  /* Cell header stays fixed at top */
+  .cell-header {
+    flex-shrink: 0;
+    height: 36px;
+  }
+
+  /* Canvas wrap fills the rest of the cell — explicit height */
+  .cell-canvas-wrap {
+    flex: 1;
+    /* explicit fallback height for browsers that don't resolve flex: 1 
+       inside a non-flex-height parent */
+    height: 220px;
+    min-height: 220px;
+    position: relative;
+    background: var(--bg-canvas);
+  }
+
+  /* Canvas fills its positioned parent */
+  .image-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Empty-state placeholder stays centred inside canvas-wrap */
+  .cell-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    pointer-events: none;
+  }
+
+  /* Metrics bar: single scrollable row */
+  .metrics-bar {
+    flex-shrink: 0;
+    height: 64px;
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .metric-chip {
+    flex: 0 0 auto;
+    min-width: 88px;
+    border-right: 0.5px solid var(--border);
+  }
+  .metric-chip:last-child { border-right: none; }
+  .metric-value { font-size: 17px; }
+
+  /* ── 3. Info / maths panel ── */
+  .panel-info {
+    order: 3;
+    border-left: none;
+    border-top: 0.5px solid var(--border);
+    overflow-y: visible;
+    padding: 12px 14px;
+  }
 }
