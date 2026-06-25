@@ -1,5 +1,5 @@
 /* 
-   LAYOUT.CSS  —  fluid, no breakpo */
+   LAYOUT.CSS  —  mobile-first, single column → desktop grid at 900px */
 
 /* ── Design tokens ── */
 :root {
@@ -19,7 +19,7 @@
   --topbar-h:      44px;
   --col-controls:  210px;
   --col-info:      248px;
-  --cell-img-h:    240px;   /* explicit image cell canvas height on mobile */
+  --cell-img-h:    240px;
 
   --font-mono: 'JetBrains Mono','Fira Mono','Menlo',monospace;
   --font-ui:   -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -49,7 +49,7 @@
 html {
   height: 100%;
   font-size: 13px;
-  -webkit-text-size-adjust: 100%; /* stop iOS font inflation */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -59,13 +59,11 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s, color 0.2s;
-  /* default: let the page scroll — desktop overrides below */
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-/* APP SHELL*/
-
+/* ── App shell ── */
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -144,87 +142,83 @@ body {
 }
 .theme-toggle:hover { background: var(--bg-secondary); color: var(--text-primary); }
 
+/* ══════════════════════════════════════════
+   MOBILE LAYOUT (default — no media query)
+   Single column, top-to-bottom:
+   1. Filter controls
+   2. Image viewer (original → blurred → deblurred)
+   3. Metrics bar
+   4. Filter info / details
+   ══════════════════════════════════════════ */
 
 .workspace {
   display: flex;
   flex-direction: column;
+  width: 100%;
   flex: 1;
 }
 
-/* ── Panels: base (mobile) ── */
-
+/* Panel order */
 .panel-controls {
   order: 1;
+  width: 100%;
   background: var(--bg-secondary);
   border-bottom: 0.5px solid var(--border);
-  padding: 14px 14px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: visible;
 }
 
 .panel-images {
   order: 2;
+  width: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  border-bottom: 0.5px solid var(--border);
 }
 
 .panel-info {
   order: 3;
-  border-top: 0.5px solid var(--border);
+  width: 100%;
   background: var(--bg-primary);
-  padding: 14px 14px;
+  border-top: 0.5px solid var(--border);
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: visible;
   font-size: 12px;
 }
 
-/* ── Mobile: reorder workspace sections ──
-   Desired order: Filter controls → Upload (original) → Blurred/Deblurred → Metrics → Filter info
-   We achieve this by making workspace a flex column and assigning explicit orders.
-*/
-@media (max-width: 899px) {
-  /* Desired mobile order:
-     1. Filter controls (algorithm + blur params + run)
-     2. Original image (upload here)
-     3. Blurred image
-     4. Deblurred image
-     5. Metrics bar
-     6. Filter info / details
-  */
-
-  .panel-controls { order: 1; }
-  .panel-images   { order: 2; }
-  .panel-info     { order: 3; }
-
-  /* panel-images is already flex-column; image-strip sits above metrics-bar */
-  .image-strip  { order: 1; display: flex; flex-direction: column; }
-  .metrics-bar  { order: 2; }
-
-  /* Within image-strip, enforce cell order */
-  #cell-original  { order: 1; }
-  #cell-blurred   { order: 2; }
-  #cell-deblurred { order: 3; }
-}
-
-
+/* Image strip — single column on mobile */
 .image-strip {
   display: flex;
   flex-direction: column;
-  border-bottom: 0.5px solid var(--border);
+  width: 100%;
 }
 
-/* Each image cell has an explicit height so it never collapses */
+/* Metrics bar below image strip */
+.metrics-bar {
+  display: flex;
+  flex-shrink: 0;
+  width: 100%;
+  height: 68px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-top: 0.5px solid var(--border);
+}
+
+/* Cell order within image-strip on mobile */
+#cell-original  { order: 1; }
+#cell-blurred   { order: 2; }
+#cell-deblurred { order: 3; }
+
+/* Each image cell */
 .image-cell {
   display: flex;
   flex-direction: column;
+  width: 100%;
   border-bottom: 0.5px solid var(--border);
-  /* total = header (36px) + canvas (var --cell-img-h) */
   height: calc(36px + var(--cell-img-h));
   flex-shrink: 0;
 }
@@ -253,7 +247,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* The canvas container: explicit pixel height, relative positioned */
 .cell-canvas-wrap {
   position: relative;
   width: 100%;
@@ -263,14 +256,10 @@ body {
   flex-shrink: 0;
 }
 
-/* Canvas and empty-state fill the container absolutely */
 .image-canvas {
   display: block;
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -278,10 +267,7 @@ body {
 
 .cell-empty {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -294,15 +280,6 @@ body {
 
 .cell-empty .empty-icon { color: var(--border); margin-bottom: 4px; }
 .cell-empty .empty-sub  { font-size: 11px; color: var(--border); }
-
-/* Metrics bar */
-.metrics-bar {
-  display: flex;
-  flex-shrink: 0;
-  height: 68px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 .metric-chip {
   flex: 0 0 auto;
@@ -336,6 +313,10 @@ body {
 .metric-value.warn  { color: #854F0B; }
 .metric-value.muted { color: var(--text-tertiary); }
 
+/* ══════════════════════════════════════════
+   DESKTOP LAYOUT — 3-column grid at 900px+
+   ══════════════════════════════════════════ */
+
 @media (min-width: 900px) {
 
   body {
@@ -352,30 +333,39 @@ body {
     display: grid;
     grid-template-columns: var(--col-controls) 1fr var(--col-info);
     grid-template-rows: 1fr;
-    /* fill exactly what's left after topbar */
     height: calc(100vh - var(--topbar-h));
     overflow: hidden;
     flex: none;
   }
 
-  /* restore panel-controls to left column */
   .panel-controls {
     order: unset;
+    width: auto;
     border-bottom: none;
     border-right: 0.5px solid var(--border);
     overflow-y: auto;
     height: 100%;
   }
 
-  /* centre column: image strip + metrics fill the column height */
   .panel-images {
     order: unset;
+    width: auto;
     border-bottom: none;
     overflow: hidden;
     height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* image strip: still vertical stack at 900px  */
+  .panel-info {
+    order: unset;
+    width: auto;
+    border-top: none;
+    border-left: 0.5px solid var(--border);
+    overflow-y: auto;
+    height: 100%;
+  }
+
   .image-strip {
     display: flex;
     flex-direction: column;
@@ -385,10 +375,13 @@ body {
     min-height: 0;
   }
 
-  /* cells scroll inside panel-images — keep explicit height */
+  /* Reset mobile cell ordering */
+  #cell-original, #cell-blurred, #cell-deblurred { order: unset; }
+
   .image-cell {
     height: calc(36px + var(--cell-img-h));
     flex-shrink: 0;
+    width: auto;
     border-bottom: 0.5px solid var(--border);
     border-right: none;
   }
@@ -399,20 +392,12 @@ body {
     min-height: var(--cell-img-h);
   }
 
-  /* right column */
-  .panel-info {
-    order: unset;
-    border-top: none;
-    border-left: 0.5px solid var(--border);
-    overflow-y: auto;
-    height: 100%;
-  }
-
-  /* metrics bar: full width, fixed height */
   .metrics-bar {
     height: 72px;
     flex-shrink: 0;
     overflow-x: visible;
+    border-top: none;
+    border-top: 0.5px solid var(--border);
   }
 
   .metric-chip {
@@ -423,6 +408,10 @@ body {
   .metric-value { font-size: 22px; }
 }
 
+/* ══════════════════════════════════════════
+   WIDE DESKTOP — 3-column image strip
+   ══════════════════════════════════════════ */
+
 @media (min-width: 1100px) {
 
   .image-strip {
@@ -432,7 +421,6 @@ body {
     height: auto;
   }
 
-  /* cells stretch to fill the grid row — drop fixed height */
   .image-cell {
     height: auto;
     min-height: 0;
@@ -442,10 +430,9 @@ body {
   }
   .image-cell:last-child { border-right: none; border-bottom: none; }
 
-  /* canvas-wrap fills remaining flex space inside the cell */
   .cell-canvas-wrap {
     flex: 1;
     height: auto;
     min-height: 0;
   }
-} 
+}
