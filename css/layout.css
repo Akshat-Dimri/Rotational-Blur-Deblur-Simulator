@@ -184,6 +184,34 @@ body {
   font-size: 12px;
 }
 
+/* ── Mobile: reorder workspace sections ──
+   Desired order: Filter controls → Upload (original) → Blurred/Deblurred → Metrics → Filter info
+   We achieve this by making workspace a flex column and assigning explicit orders.
+*/
+@media (max-width: 899px) {
+  /* Desired mobile order:
+     1. Filter controls (algorithm + blur params + run)
+     2. Original image (upload here)
+     3. Blurred image
+     4. Deblurred image
+     5. Metrics bar
+     6. Filter info / details
+  */
+
+  .panel-controls { order: 1; }
+  .panel-images   { order: 2; }
+  .panel-info     { order: 3; }
+
+  /* panel-images is already flex-column; image-strip sits above metrics-bar */
+  .image-strip  { order: 1; display: flex; flex-direction: column; }
+  .metrics-bar  { order: 2; }
+
+  /* Within image-strip, enforce cell order */
+  #cell-original  { order: 1; }
+  #cell-blurred   { order: 2; }
+  #cell-deblurred { order: 3; }
+}
+
 
 .image-strip {
   display: flex;
@@ -420,4 +448,4 @@ body {
     height: auto;
     min-height: 0;
   }
-}
+} 
