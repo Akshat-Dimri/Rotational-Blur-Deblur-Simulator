@@ -39,44 +39,60 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 100vw;
-      height: 100vh;
       justify-content: center;
+      width: 100%;
+      min-height: 100vh;
+      padding: 0 16px;
+      gap: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
     }
 
+    /* ── Header: flow in normal document order, not absolute ── */
     .ld-header {
-      position: absolute;
-      top: 40px;
-      left: 50%;
-      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      white-space: nowrap;
+      text-align: center;
+      padding: 0 8px;
+      margin-bottom: 20px;
+      flex-shrink: 0;
     }
 
-    .ld-title { font-size: 13px; font-weight: 500; letter-spacing: 0.04em; color: #111; }
+    .ld-title {
+      font-size: clamp(11px, 3.2vw, 13px);
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: #111;
+      white-space: nowrap;
+    }
     [data-theme="dark"] .ld-title { color: #f0f0f0; }
 
-    .ld-sub { font-size: 11px; font-weight: 400; letter-spacing: 0.06em; color: #666; }
+    .ld-sub {
+      font-size: clamp(9.5px, 2.6vw, 11px);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      color: #666;
+      white-space: nowrap;
+    }
     [data-theme="dark"] .ld-sub { color: #888; }
 
+    /* ── Scene: fluid width, fixed aspect ratio ── */
     .ld-scene {
       position: relative;
-      width: 380px;
-      height: 130px;
-      margin-bottom: 20px;
+      width: min(380px, 92vw);
+      height: calc(min(380px, 92vw) * 0.342); /* keeps ~130/380 ratio */
+      margin-bottom: 36px;
+      flex-shrink: 0;
     }
 
     .ld-plane-img {
       position: absolute;
-      width: 340px;
-      bottom: -40px;
-      left: 20px;
+      width: 89.5%;   /* 340/380 */
+      bottom: -30%;
+      left: 5%;
       mix-blend-mode: normal;
-      /* hidden until loaded */
       opacity: 0;
       transition: opacity 0.4s ease;
     }
@@ -84,13 +100,12 @@
 
     .wind-group {
       position: absolute;
-      top: 36px;
-      right: 4px;
+      top: 28%;
+      right: 1%;
       display: flex;
       flex-direction: column;
       gap: 6px;
       pointer-events: none;
-      /* hidden until plane loaded */
       opacity: 0;
       transition: opacity 0.4s ease;
     }
@@ -115,8 +130,8 @@
     .ld-runway {
       position: absolute;
       bottom: 0;
-      left: -60px;
-      right: -60px;
+      left: -8%;
+      right: -8%;
       height: 1px;
       background: #ccc;
     }
@@ -127,10 +142,11 @@
       flex-direction: column;
       align-items: center;
       gap: 6px;
+      flex-shrink: 0;
     }
 
     .ld-bar-track {
-      width: 220px;
+      width: min(220px, 60vw);
       height: 3px;
       border-radius: 2px;
       overflow: hidden;
@@ -150,21 +166,39 @@
     .ld-pct { font-size: 10px; font-variant-numeric: tabular-nums; color: #999; }
     [data-theme="dark"] .ld-pct { color: #666; }
 
+    /* ── Logo: flow below bar, not absolute ── */
     .ld-logo-wrap {
-      position: absolute;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
+      margin-top: 24px;
+      padding: 0 8px;
+      flex-shrink: 0;
     }
-    .ld-logo-wrap img { height: 120px; width: auto; object-fit: contain; display: block; }
+    .ld-logo-wrap img {
+      height: clamp(72px, 20vw, 120px);
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
 
-    .ld-logo-text { font-size: 10px; letter-spacing: 0.06em; text-align: center; margin-top: 6px; white-space: nowrap; color: #888; }
+    .ld-logo-text {
+      font-size: clamp(9px, 2.4vw, 10px);
+      letter-spacing: 0.06em;
+      text-align: center;
+      margin-top: 6px;
+      color: #888;
+    }
     [data-theme="dark"] .ld-logo-text { color: #444; }
 
-    .ld-logo-sub { font-size: 10px; font-style: italic; letter-spacing: 0.03em; text-align: center; margin-top: 3px; white-space: nowrap; color: #aaa; }
+    .ld-logo-sub {
+      font-size: clamp(9px, 2.4vw, 10px);
+      font-style: italic;
+      letter-spacing: 0.03em;
+      text-align: center;
+      margin-top: 3px;
+      color: #aaa;
+    }
     [data-theme="dark"] .ld-logo-sub { color: #333; }
 
     .topbar-icon-btn {
@@ -311,7 +345,28 @@
       </aside>
 
       <section class="panel-images" aria-label="Image viewer">
-        <div class="image-strip">
+
+        <!-- ── Mobile layout toggle toolbar (hidden on desktop via CSS) ── -->
+        <div class="image-strip-toolbar" id="image-strip-toolbar">
+          <button class="strip-toggle-btn active" id="toggle-stack" aria-label="Stack vertically" title="Stack vertically">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="1" y="1" width="14" height="4" rx="1"/>
+              <rect x="1" y="6" width="14" height="4" rx="1"/>
+              <rect x="1" y="11" width="14" height="4" rx="1"/>
+            </svg>
+            Stack
+          </button>
+          <button class="strip-toggle-btn" id="toggle-side" aria-label="Side by side" title="Side by side">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="1" y="1" width="4" height="14" rx="1"/>
+              <rect x="6" y="1" width="4" height="14" rx="1"/>
+              <rect x="11" y="1" width="4" height="14" rx="1"/>
+            </svg>
+            Side by side
+          </button>
+        </div>
+
+        <div class="image-strip" id="image-strip">
           <div class="image-cell" id="cell-original">
             <div class="cell-header">
               <span class="cell-label">Original</span>
@@ -486,6 +541,37 @@
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       applyTheme(!isDark);
     });
+  </script>
+
+  <!-- ── Mobile image strip layout toggle ── -->
+  <script>
+    (function () {
+      const strip     = document.getElementById('image-strip');
+      const btnStack  = document.getElementById('toggle-stack');
+      const btnSide   = document.getElementById('toggle-side');
+
+      function setLayout(mode) {
+        if (mode === 'side') {
+          strip.classList.add('side-by-side');
+          btnSide.classList.add('active');
+          btnStack.classList.remove('active');
+          localStorage.setItem('strip-layout', 'side');
+        } else {
+          strip.classList.remove('side-by-side');
+          btnStack.classList.add('active');
+          btnSide.classList.remove('active');
+          localStorage.setItem('strip-layout', 'stack');
+        }
+      }
+
+      // Restore saved preference
+      if (localStorage.getItem('strip-layout') === 'side') {
+        setLayout('side');
+      }
+
+      btnStack.addEventListener('click', () => setLayout('stack'));
+      btnSide.addEventListener('click',  () => setLayout('side'));
+    })();
   </script>
 
   <!-- ── Welcome Modal ── -->

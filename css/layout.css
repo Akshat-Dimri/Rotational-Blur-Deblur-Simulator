@@ -190,11 +190,76 @@ body {
   font-size: 12px;
 }
 
-/* Image strip — single column on mobile */
+/* ── Mobile layout toggle toolbar ── */
+.image-strip-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 0 10px;
+  height: 32px;
+  border-bottom: 0.5px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.strip-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  padding: 3px 8px;
+  height: 22px;
+  border: 0.5px solid var(--border);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.12s, color 0.12s;
+}
+.strip-toggle-btn:first-child { border-radius: 2px 0 0 2px; }
+.strip-toggle-btn:last-child  { border-radius: 0 2px 2px 0; margin-left: -0.5px; }
+
+.strip-toggle-btn.active {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+.strip-toggle-btn:not(.active):hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Image strip — single column on mobile (default) */
 .image-strip {
   display: flex;
   flex-direction: column;
   width: 100%;
+}
+
+/* ── Mobile side-by-side mode ── */
+.image-strip.side-by-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  flex-direction: unset;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.image-strip.side-by-side .image-cell {
+  border-bottom: none;
+  border-right: 0.5px solid var(--border);
+  height: calc(36px + var(--cell-img-h));
+  min-width: 110px;
+}
+.image-strip.side-by-side .image-cell:last-child {
+  border-right: none;
+}
+
+.image-strip.side-by-side .cell-canvas-wrap {
+  height: var(--cell-img-h);
 }
 
 /* Metrics bar below image strip */
@@ -365,6 +430,9 @@ body {
     overflow-y: auto;
     height: 100%;
   }
+
+  /* Hide the mobile toggle toolbar on desktop */
+  .image-strip-toolbar { display: none; }
 
   .image-strip {
     display: flex;
