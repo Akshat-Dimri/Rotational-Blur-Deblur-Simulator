@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>Rotational Deblur Simulator</title>
 
-  <!-- ── Theme must apply FIRST to avoid flash on loader ── -->
   <script>
     (function () {
       const saved = localStorage.getItem('theme');
@@ -18,7 +17,6 @@
   <link rel="stylesheet" href="css/components.css" />
 
   <style>
-    /* ── Loader overlay ── */
     #loader-overlay {
       position: fixed;
       inset: 0;
@@ -48,7 +46,6 @@
       overflow: hidden;
     }
 
-    /* ── Header: flow in normal document order, not absolute ── */
     .ld-header {
       display: flex;
       flex-direction: column;
@@ -78,18 +75,17 @@
     }
     [data-theme="dark"] .ld-sub { color: #888; }
 
-    /* ── Scene: fluid width, fixed aspect ratio ── */
     .ld-scene {
       position: relative;
       width: min(380px, 92vw);
-      height: calc(min(380px, 92vw) * 0.342); /* keeps ~130/380 ratio */
+      height: calc(min(380px, 92vw) * 0.342);
       margin-bottom: 36px;
       flex-shrink: 0;
     }
 
     .ld-plane-img {
       position: absolute;
-      width: 89.5%;   /* 340/380 */
+      width: 89.5%;
       bottom: -30%;
       left: 5%;
       mix-blend-mode: normal;
@@ -166,7 +162,6 @@
     .ld-pct { font-size: 10px; font-variant-numeric: tabular-nums; color: #999; }
     [data-theme="dark"] .ld-pct { color: #666; }
 
-    /* ── Logo: flow below bar, not absolute ── */
     .ld-logo-wrap {
       display: flex;
       flex-direction: column;
@@ -350,7 +345,6 @@
           <div class="image-cell" id="cell-original">
             <div class="cell-header">
               <span class="cell-label">Original</span>
-              <!-- ── Mobile layout toggle — lives inside this always-visible header ── -->
               <div class="image-strip-toolbar" id="image-strip-toolbar">
                 <button class="strip-toggle-btn active" id="toggle-stack" aria-label="Stack vertically" title="Stack">
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -456,7 +450,6 @@
     </div>
 
   </div>
-  <!-- end .app-shell -->
 
   <!-- ── Loader script ── -->
   <script>
@@ -467,7 +460,7 @@
       const plane     = document.getElementById('amca-img');
       const windGroup = document.getElementById('wind-group');
 
-      const DURATION = (3 + Math.random() * 3) * 1000; // 3–6 s
+      const DURATION = (3 + Math.random() * 3) * 1000;
 
       let barInterval = null;
       let bobInterval = null;
@@ -507,7 +500,6 @@
         plane.addEventListener('load', startProgress);
         plane.addEventListener('error', startProgress);
       }
-
     })();
   </script>
 

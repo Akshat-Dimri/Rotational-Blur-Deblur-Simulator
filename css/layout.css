@@ -144,11 +144,6 @@ body {
 
 /* ══════════════════════════════════════════
    MOBILE LAYOUT (default — no media query)
-   Single column, top-to-bottom:
-   1. Filter controls
-   2. Image viewer (original → blurred → deblurred)
-   3. Metrics bar
-   4. Filter info / details
    ══════════════════════════════════════════ */
 
 .workspace {
@@ -158,7 +153,6 @@ body {
   flex: 1;
 }
 
-/* Panel order */
 .panel-controls {
   order: 1;
   width: 100%;
@@ -190,7 +184,7 @@ body {
   font-size: 12px;
 }
 
-/* ── Mobile layout toggle — inline inside cell-original's header ── */
+/* ── Mobile layout toggle ── */
 .image-strip-toolbar {
   display: flex;
   align-items: center;
@@ -224,42 +218,54 @@ body {
   color: var(--text-primary);
 }
 
-/* Image strip — single column on mobile (default) */
+/* ── Image strip: stack (default) ── */
 .image-strip {
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-/* ── Mobile side-by-side mode ── */
+/* ── Image strip: side-by-side mode ── */
 .image-strip.side-by-side {
-  display: flex;
   flex-direction: row;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
-  width: 100%;
 }
 
 .image-strip.side-by-side .image-cell {
-  flex: 0 0 72vw;
-  width: 72vw;
+  flex: 0 0 80vw;
+  width: 80vw;
+  min-width: 0;
   border-bottom: none;
   border-right: 0.5px solid var(--border);
-  height: calc(36px + 52vw);
   scroll-snap-align: start;
 }
 .image-strip.side-by-side .image-cell:last-child {
   border-right: none;
 }
-
 .image-strip.side-by-side .cell-canvas-wrap {
-  height: 52vw;
+  height: 56vw;
   min-height: unset;
 }
 
-/* Metrics bar below image strip */
+/* ── Stack mode: explicit resets ── */
+.image-strip:not(.side-by-side) .image-cell {
+  width: 100%;
+  flex: none;
+  border-right: none;
+  border-bottom: 0.5px solid var(--border);
+}
+.image-strip:not(.side-by-side) .image-cell:last-child {
+  border-bottom: none;
+}
+.image-strip:not(.side-by-side) .cell-canvas-wrap {
+  height: 72vw;
+  min-height: unset;
+}
+
+/* Metrics bar */
 .metrics-bar {
   display: flex;
   flex-shrink: 0;
@@ -270,7 +276,7 @@ body {
   border-top: 0.5px solid var(--border);
 }
 
-/* Cell order within image-strip on mobile */
+/* Cell order on mobile */
 #cell-original  { order: 1; }
 #cell-blurred   { order: 2; }
 #cell-deblurred { order: 3; }
@@ -279,11 +285,8 @@ body {
 .image-cell {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  border-bottom: 0.5px solid var(--border);
   flex-shrink: 0;
 }
-.image-cell:last-child { border-bottom: none; }
 
 .cell-header {
   height: 36px;
@@ -311,7 +314,6 @@ body {
 .cell-canvas-wrap {
   position: relative;
   width: 100%;
-  height: 72vw;          /* tall enough to show image clearly on mobile */
   background: var(--bg-canvas);
   overflow: hidden;
   flex-shrink: 0;
@@ -460,7 +462,6 @@ body {
     height: 72px;
     flex-shrink: 0;
     overflow-x: visible;
-    border-top: none;
     border-top: 0.5px solid var(--border);
   }
 
