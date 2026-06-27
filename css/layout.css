@@ -233,25 +233,30 @@ body {
 
 /* ── Mobile side-by-side mode ── */
 .image-strip.side-by-side {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  flex-direction: unset;
+  display: flex;
+  flex-direction: row;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  width: 100%;
 }
 
 .image-strip.side-by-side .image-cell {
+  flex: 0 0 72vw;
+  width: 72vw;
   border-bottom: none;
   border-right: 0.5px solid var(--border);
-  height: calc(36px + var(--cell-img-h));
-  min-width: 110px;
+  height: calc(36px + 52vw);
+  scroll-snap-align: start;
 }
 .image-strip.side-by-side .image-cell:last-child {
   border-right: none;
 }
 
 .image-strip.side-by-side .cell-canvas-wrap {
-  height: var(--cell-img-h);
+  height: 52vw;
+  min-height: unset;
 }
 
 /* Metrics bar below image strip */
