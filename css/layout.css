@@ -281,7 +281,6 @@ body {
   flex-direction: column;
   width: 100%;
   border-bottom: 0.5px solid var(--border);
-  height: calc(36px + var(--cell-img-h));
   flex-shrink: 0;
 }
 .image-cell:last-child { border-bottom: none; }
@@ -312,7 +311,7 @@ body {
 .cell-canvas-wrap {
   position: relative;
   width: 100%;
-  height: var(--cell-img-h);
+  height: 72vw;          /* tall enough to show image clearly on mobile */
   background: var(--bg-canvas);
   overflow: hidden;
   flex-shrink: 0;
