@@ -190,34 +190,26 @@ body {
   font-size: 12px;
 }
 
-/* ── Mobile layout toggle toolbar ── */
+/* ── Mobile layout toggle — inline inside cell-original's header ── */
 .image-strip-toolbar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  padding: 0 10px;
-  height: 32px;
-  border-bottom: 0.5px solid var(--border);
-  background: var(--bg-secondary);
+  gap: 2px;
   flex-shrink: 0;
 }
 
 .strip-toggle-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  font-family: var(--font-ui);
-  font-weight: 500;
-  padding: 3px 8px;
-  height: 22px;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
   border: 0.5px solid var(--border);
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
-  letter-spacing: 0.03em;
   transition: background 0.12s, color 0.12s;
+  padding: 0;
 }
 .strip-toggle-btn:first-child { border-radius: 2px 0 0 2px; }
 .strip-toggle-btn:last-child  { border-radius: 0 2px 2px 0; margin-left: -0.5px; }
@@ -228,7 +220,7 @@ body {
   border-color: var(--text-primary);
 }
 .strip-toggle-btn:not(.active):hover {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   color: var(--text-primary);
 }
 

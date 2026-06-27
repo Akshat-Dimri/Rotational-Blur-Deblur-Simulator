@@ -346,30 +346,27 @@
 
       <section class="panel-images" aria-label="Image viewer">
 
-        <!-- ── Mobile layout toggle toolbar (hidden on desktop via CSS) ── -->
-        <div class="image-strip-toolbar" id="image-strip-toolbar">
-          <button class="strip-toggle-btn active" id="toggle-stack" aria-label="Stack vertically" title="Stack vertically">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="1" y="1" width="14" height="4" rx="1"/>
-              <rect x="1" y="6" width="14" height="4" rx="1"/>
-              <rect x="1" y="11" width="14" height="4" rx="1"/>
-            </svg>
-            Stack
-          </button>
-          <button class="strip-toggle-btn" id="toggle-side" aria-label="Side by side" title="Side by side">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="1" y="1" width="4" height="14" rx="1"/>
-              <rect x="6" y="1" width="4" height="14" rx="1"/>
-              <rect x="11" y="1" width="4" height="14" rx="1"/>
-            </svg>
-            Side by side
-          </button>
-        </div>
-
         <div class="image-strip" id="image-strip">
           <div class="image-cell" id="cell-original">
             <div class="cell-header">
               <span class="cell-label">Original</span>
+              <!-- ── Mobile layout toggle — lives inside this always-visible header ── -->
+              <div class="image-strip-toolbar" id="image-strip-toolbar">
+                <button class="strip-toggle-btn active" id="toggle-stack" aria-label="Stack vertically" title="Stack">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="1" y="1" width="14" height="4" rx="1"/>
+                    <rect x="1" y="6" width="14" height="4" rx="1"/>
+                    <rect x="1" y="11" width="14" height="4" rx="1"/>
+                  </svg>
+                </button>
+                <button class="strip-toggle-btn" id="toggle-side" aria-label="Side by side" title="Side by side">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="1" y="1" width="4" height="14" rx="1"/>
+                    <rect x="6" y="1" width="4" height="14" rx="1"/>
+                    <rect x="11" y="1" width="4" height="14" rx="1"/>
+                  </svg>
+                </button>
+              </div>
               <button class="cell-action" id="upload-trigger" aria-label="Upload image">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                 Upload
@@ -477,7 +474,6 @@
       let bobPh = 0;
 
       function startProgress() {
-        // Reveal plane and wind lines
         plane.classList.add('loaded');
         windGroup.classList.add('loaded');
 
@@ -505,13 +501,11 @@
         }, 16);
       }
 
-      // Wait for AMCA image to load before starting the bar
       if (plane.complete && plane.naturalWidth > 0) {
-        // Already cached / instant
         startProgress();
       } else {
         plane.addEventListener('load', startProgress);
-        plane.addEventListener('error', startProgress); // fallback: start anyway on error
+        plane.addEventListener('error', startProgress);
       }
 
     })();
@@ -546,9 +540,9 @@
   <!-- ── Mobile image strip layout toggle ── -->
   <script>
     (function () {
-      const strip     = document.getElementById('image-strip');
-      const btnStack  = document.getElementById('toggle-stack');
-      const btnSide   = document.getElementById('toggle-side');
+      const strip    = document.getElementById('image-strip');
+      const btnStack = document.getElementById('toggle-stack');
+      const btnSide  = document.getElementById('toggle-side');
 
       function setLayout(mode) {
         if (mode === 'side') {
@@ -564,7 +558,6 @@
         }
       }
 
-      // Restore saved preference
       if (localStorage.getItem('strip-layout') === 'side') {
         setLayout('side');
       }
