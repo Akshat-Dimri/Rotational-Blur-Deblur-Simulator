@@ -4,276 +4,303 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>Rotational Deblur Simulator</title>
-
   <script>
     (function () {
-      const saved = localStorage.getItem('theme');
-      document.documentElement.setAttribute('data-theme', saved === 'dark' ? 'dark' : 'light');
+      const s = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', s === 'dark' ? 'dark' : 'light');
     })();
   </script>
-
+  <style>html,body{height:100%!important;overflow:hidden!important}</style>
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/panels.css" />
   <link rel="stylesheet" href="css/components.css" />
 
   <style>
+    /* ── Loader ── */
     #loader-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: opacity 0.5s ease;
-      background: #ffffff;
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; transition: opacity 0.5s;
     }
     [data-theme="dark"] #loader-overlay { background: #0d0d0d; }
     #loader-overlay.fade-out { opacity: 0; pointer-events: none; }
 
-    * { box-sizing: border-box; }
-
     .ld-root {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      min-height: 100vh;
-      padding: 0 16px;
-      gap: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      overflow: hidden;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; width: 100%; min-height: 100vh;
+      padding: 0 16px; font-family: var(--font-ui, sans-serif); overflow: hidden;
     }
-
-    .ld-header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      text-align: center;
-      padding: 0 8px;
-      margin-bottom: 20px;
-      flex-shrink: 0;
-    }
-
-    .ld-title {
-      font-size: clamp(11px, 3.2vw, 13px);
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      color: #111;
-      white-space: nowrap;
-    }
+    .ld-header { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; margin-bottom: 20px; }
+    .ld-title  { font-size: clamp(11px,3.2vw,13px); font-weight: 500; letter-spacing: .04em; color: #111; white-space: nowrap; }
     [data-theme="dark"] .ld-title { color: #f0f0f0; }
-
-    .ld-sub {
-      font-size: clamp(9.5px, 2.6vw, 11px);
-      font-weight: 400;
-      letter-spacing: 0.06em;
-      color: #666;
-      white-space: nowrap;
-    }
+    .ld-sub    { font-size: clamp(9.5px,2.6vw,11px); letter-spacing: .06em; color: #666; white-space: nowrap; }
     [data-theme="dark"] .ld-sub { color: #888; }
 
-    .ld-scene {
-      position: relative;
-      width: min(380px, 92vw);
-      height: calc(min(380px, 92vw) * 0.342);
-      margin-bottom: 36px;
-      flex-shrink: 0;
-    }
-
-    .ld-plane-img {
-      position: absolute;
-      width: 89.5%;
-      bottom: -30%;
-      left: 5%;
-      mix-blend-mode: normal;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
+    .ld-scene  { position: relative; width: min(380px,92vw); height: calc(min(380px,92vw)*.342); margin-bottom: 36px; }
+    .ld-plane-img { position: absolute; width: 89.5%; bottom: -30%; left: 5%; opacity: 0; transition: opacity .4s; }
     .ld-plane-img.loaded { opacity: 1; }
-
-    .wind-group {
-      position: absolute;
-      top: 28%;
-      right: 1%;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
+    .wind-group { position: absolute; top: 28%; right: 1%; display: flex; flex-direction: column; gap: 6px; pointer-events: none; opacity: 0; transition: opacity .4s; }
     .wind-group.loaded { opacity: 1; }
-
-    .wind-line {
-      height: 1px;
-      border-radius: 1px;
-      opacity: 0;
-      animation: wind 1s ease-in-out infinite;
-      background: #555;
-    }
+    .wind-line  { height: 1px; border-radius: 1px; opacity: 0; animation: wind 1s ease-in-out infinite; background: #555; }
     [data-theme="dark"] .wind-line { background: #aaa; }
-
-    @keyframes wind {
-      0%   { opacity: 0;   transform: translateX(-10px); }
-      25%  { opacity: 0.5; }
-      75%  { opacity: 0.5; }
-      100% { opacity: 0;   transform: translateX(14px); }
-    }
-
-    .ld-runway {
-      position: absolute;
-      bottom: 0;
-      left: -8%;
-      right: -8%;
-      height: 1px;
-      background: #ccc;
-    }
+    @keyframes wind { 0%{opacity:0;transform:translateX(-10px)} 25%{opacity:.5} 75%{opacity:.5} 100%{opacity:0;transform:translateX(14px)} }
+    .ld-runway { position: absolute; bottom: 0; left: -8%; right: -8%; height: 1px; background: #ccc; }
     [data-theme="dark"] .ld-runway { background: #333; }
 
-    .ld-bar-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .ld-bar-track {
-      width: min(220px, 60vw);
-      height: 3px;
-      border-radius: 2px;
-      overflow: hidden;
-      background: #e0e0e0;
-    }
+    .ld-bar-wrap  { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .ld-bar-track { width: min(220px,60vw); height: 3px; border-radius: 2px; overflow: hidden; background: #e0e0e0; }
     [data-theme="dark"] .ld-bar-track { background: #2a2a2a; }
-
-    .ld-bar-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: 2px;
-      transition: width 0.1s linear;
-      background: #111;
-    }
+    .ld-bar-fill  { height: 100%; width: 0%; border-radius: 2px; transition: width .1s linear; background: #111; }
     [data-theme="dark"] .ld-bar-fill { background: #f0f0f0; }
-
     .ld-pct { font-size: 10px; font-variant-numeric: tabular-nums; color: #999; }
-    [data-theme="dark"] .ld-pct { color: #666; }
 
-    .ld-logo-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 24px;
-      padding: 0 8px;
-      flex-shrink: 0;
-    }
-    .ld-logo-wrap img {
-      height: clamp(72px, 20vw, 120px);
-      width: auto;
-      object-fit: contain;
-      display: block;
-    }
-
-    .ld-logo-text {
-      font-size: clamp(9px, 2.4vw, 10px);
-      letter-spacing: 0.06em;
-      text-align: center;
-      margin-top: 6px;
-      color: #888;
-    }
+    .ld-logo-wrap { display: flex; flex-direction: column; align-items: center; margin-top: 24px; }
+    .ld-logo-wrap img { height: clamp(72px,20vw,120px); width: auto; object-fit: contain; }
+    .ld-logo-text { font-size: clamp(9px,2.4vw,10px); letter-spacing: .06em; text-align: center; margin-top: 6px; color: #888; }
     [data-theme="dark"] .ld-logo-text { color: #444; }
-
-    .ld-logo-sub {
-      font-size: clamp(9px, 2.4vw, 10px);
-      font-style: italic;
-      letter-spacing: 0.03em;
-      text-align: center;
-      margin-top: 3px;
-      color: #aaa;
-    }
+    .ld-logo-sub  { font-size: clamp(9px,2.4vw,10px); font-style: italic; text-align: center; margin-top: 3px; color: #aaa; }
     [data-theme="dark"] .ld-logo-sub { color: #333; }
 
-    .topbar-icon-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border: 0.5px solid var(--border);
-      background: transparent;
-      color: var(--text-secondary);
-      cursor: pointer;
-      text-decoration: none;
-      flex-shrink: 0;
+    /* ── Welcome modal ── */
+    .welcome-backdrop {
+      position: fixed; inset: 0; z-index: 8888;
+      background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .35s;
     }
-    .topbar-icon-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+    .welcome-backdrop.visible { opacity: 1; }
+    .welcome-box {
+      background: var(--bg-primary,#fff); border: 0.5px solid var(--border,#e0e0e0);
+      box-shadow: 0 20px 60px rgba(0,0,0,.18); border-radius: 4px;
+      padding: 28px 32px 24px; max-width: 480px; width: 90%;
+      transform: translateY(-10px); transition: transform .35s;
+    }
+    .welcome-backdrop.visible .welcome-box { transform: translateY(0); }
+    .welcome-tag   { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-secondary,#888); margin-bottom: 10px; }
+    .welcome-title { font-size: 15px; font-weight: 600; color: var(--text-primary,#111); margin-bottom: 14px; line-height: 1.4; }
+    .welcome-body  { font-size: 12.5px; color: var(--text-secondary,#555); line-height: 1.75; margin-bottom: 20px; }
+    .welcome-body strong { color: var(--text-primary,#111); font-weight: 500; }
+    .welcome-footer { display: flex; justify-content: space-between; align-items: center; border-top: .5px solid var(--border,#e8e8e8); padding-top: 14px; }
+    .welcome-author { font-size: 10.5px; color: var(--text-secondary,#999); letter-spacing: .03em; }
+    .welcome-dismiss {
+      font-size: 11.5px; font-weight: 500; padding: 6px 18px;
+      border: .5px solid var(--text-primary,#111); background: transparent;
+      color: var(--text-primary,#111); cursor: pointer; border-radius: 2px;
+      letter-spacing: .04em; transition: background .15s, color .15s;
+    }
+    .welcome-dismiss:hover { background: var(--text-primary,#111); color: var(--bg-primary,#fff); }
+
+
+    /* ── Upload button: centred in original cell header ── */
+    @media (max-width: 899px) {
+      .cell-header-original {
+        position: relative !important;
+        justify-content: center !important;
+      }
+      .cell-header-original .cell-label {
+        position: absolute;
+        left: 6px;
+      }
+      .cell-action-upload {
+        /* centred by justify-content:center on parent */
+        background: var(--purple) !important;
+        color: #fff !important;
+        border-color: var(--purple) !important;
+        padding: 4px 14px !important;
+        font-weight: 500 !important;
+      }
+      .cell-action-upload:hover { opacity: 0.88 !important; }
+    }
+
+    /* ── Info panel shell ── */
+    .info-panel-shell {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: flex 0.28s ease, height 0.28s ease;
+    }
+
+    /* topbar inside the shell */
+    .info-panel-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      height: 32px;
+      padding: 0 10px;
+      border-top: 0.5px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .info-panel-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    .info-action-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 22px;
+      background: none; border: 0.5px solid var(--border);
+      cursor: pointer; color: var(--text-tertiary); border-radius: 2px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .info-action-btn:hover { background: var(--bg-canvas); color: var(--text-primary); }
+
+    .strip-toolbar-sep {
+      width: 0.5px; height: 16px;
+      background: var(--border);
+      margin: 0 2px;
+    }
+
+    /* ── MOBILE: shell sits below image strip, default ~40% height ── */
+    @media (max-width: 899px) {
+      /* panel-images is the flex column; shell is a flex child */
+      .info-panel-shell {
+        flex: 0 0 40%;
+        min-height: 32px; /* just topbar */
+        max-height: 92%;
+      }
+
+      /* IMAGE EXPANDED: images take all space, info hidden to topbar only */
+      .info-panel-shell.images-expanded {
+        flex: 0 0 32px !important;
+        overflow: hidden;
+      }
+
+      /* INFO EXPANDED: info takes all space, images shrink to zero */
+      .info-panel-shell.info-expanded {
+        flex: 0 0 calc(100% - 32px) !important;
+      }
+
+      /* smooth snap transitions */
+      .info-panel-shell,
+      .panel-images { transition: flex 0.25s cubic-bezier(0.4,0,0.2,1); }
+
+      .info-panel-shell .panel-info {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        max-height: none !important;
+        border-top: none !important;
+        border-left: none !important;
+        padding: 10px 14px 16px !important;
+      }
+    }
+
+    /* ── DESKTOP: shell is right grid column ── */
+    @media (min-width: 900px) {
+      .info-panel-shell {
+        border-left: 0.5px solid var(--border);
+        height: 100%;
+        flex: none;
+      }
+
+      .info-panel-topbar {
+        border-top: none;
+        border-bottom: 0.5px solid var(--border);
+      }
+
+      .info-panel-shell .panel-info {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        border-left: none !important;
+        padding: 14px !important;
+        max-height: none !important;
+        border-top: none !important;
+      }
+
+      /* fullscreen: cover everything */
+      .info-panel-shell.info-expanded {
+        position: fixed !important;
+        inset: var(--topbar-h) 0 0 0 !important;
+        z-index: 50 !important;
+        height: auto !important;
+        border-left: none !important;
+        background: var(--bg-primary) !important;
+      }
+    }
+
+    /* page dots (mobile only, hidden via layout.css on desktop) */
+    .page-dots { display: none; }
+
+    /* image strip toolbar (mobile only, hidden via layout.css on desktop) */
+    .image-strip-toolbar { display: none; }
   </style>
 </head>
 <body>
 
-  <!-- ── LOADER ── -->
-  <div id="loader-overlay">
-    <div class="ld-root">
-
-      <div class="ld-header">
-        <div class="ld-title">Summer Research Internship '26</div>
-        <div class="ld-sub">Akshat Dimri | Engineering Physics | NIT Hamirpur</div>
+<!-- ── LOADER ── -->
+<div id="loader-overlay">
+  <div class="ld-root">
+    <div class="ld-header">
+      <div class="ld-title">Summer Research Internship '26</div>
+      <div class="ld-sub">Akshat Dimri | Engineering Physics | NIT Hamirpur</div>
+    </div>
+    <div class="ld-scene">
+      <div class="wind-group" id="wind-group">
+        <div class="wind-line" style="width:22px;animation-delay:0s"></div>
+        <div class="wind-line" style="width:14px;animation-delay:.35s"></div>
+        <div class="wind-line" style="width:18px;animation-delay:.7s"></div>
       </div>
-
-      <div class="ld-scene">
-        <div class="wind-group" id="wind-group">
-          <div class="wind-line" style="width:22px; animation-delay:0s;"></div>
-          <div class="wind-line" style="width:14px; animation-delay:0.35s;"></div>
-          <div class="wind-line" style="width:18px; animation-delay:0.7s;"></div>
-        </div>
-        <img class="ld-plane-img" id="amca-img" src="loader/amca.png" alt="AMCA" />
-        <div class="ld-runway"></div>
-      </div>
-
-      <div class="ld-bar-wrap">
-        <div class="ld-bar-track">
-          <div class="ld-bar-fill" id="bar-fill"></div>
-        </div>
-        <span class="ld-pct" id="bar-pct">0%</span>
-      </div>
-
-      <div class="ld-logo-wrap">
-        <img src="loader/DRDO-logo.png" alt="DRDO" onerror="this.parentElement.style.display='none'" />
-        <div class="ld-logo-text">Instruments Research and Development Establishment</div>
-        <div class="ld-logo-sub">(The above illustration is based on 5th gen AMCA)</div>
-      </div>
-
+      <img class="ld-plane-img" id="amca-img" src="loader/amca.png" alt="AMCA" />
+      <div class="ld-runway"></div>
+    </div>
+    <div class="ld-bar-wrap">
+      <div class="ld-bar-track"><div class="ld-bar-fill" id="bar-fill"></div></div>
+      <span class="ld-pct" id="bar-pct">0%</span>
+    </div>
+    <div class="ld-logo-wrap">
+      <img src="loader/DRDO-logo.png" alt="DRDO" onerror="this.parentElement.style.display='none'" />
+      <div class="ld-logo-text">Instruments Research and Development Establishment</div>
+      <div class="ld-logo-sub">(The above illustration is based on 5th gen AMCA)</div>
     </div>
   </div>
+</div>
 
-  <!-- ── MAIN APP ── -->
-  <div class="app-shell">
+<!-- ── MAIN APP ── -->
+<div class="app-shell">
 
-    <header class="topbar">
-      <div class="topbar-left">
-        <span class="status-dot" id="status-dot"></span>
-        <span class="app-title">Rotational Deblurring Pipeline Simulator</span>
-      </div>
-      <div class="topbar-right">
-        <a class="topbar-icon-btn" href="docs/physics-notes.html" target="_blank" aria-label="Physics notes" title="Physics notes">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
-        </a>
-        <a class="topbar-icon-btn" href="https://github.com/Akshat-Dimri" target="_blank" aria-label="GitHub" title="GitHub">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-        </a>
-        <button class="topbar-icon-btn" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
-          <svg id="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
-          <svg id="icon-sun"  width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="status-dot" id="status-dot"></span>
+      <span class="app-title">Rotational Deblurring Pipeline Simulator</span>
+    </div>
+    <div class="topbar-right">
+      <a class="topbar-icon-btn" href="docs/physics-notes.html" target="_blank" title="Physics notes">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+      </a>
+      <a class="topbar-icon-btn" href="https://github.com/Akshat-Dimri" target="_blank" title="GitHub">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+      <button class="topbar-icon-btn" id="theme-toggle" title="Toggle dark mode">
+        <svg id="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+        <svg id="icon-sun"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace" style="flex:1;min-height:0;overflow:hidden">
+
+    <!-- ══ CONTROLS ══
+         Mobile: absolute bottom drawer  |  Desktop: left sidebar via panels.css -->
+    <aside class="panel-controls" id="panel-controls" aria-label="Filter controls">
+
+      <!-- Mobile-only drawer handle -->
+      <div class="drawer-handle" id="drawer-handle">
+        <div class="drawer-handle-bar"></div>
+        <span class="drawer-handle-title">Controls</span>
+        <button class="btn-primary" id="run-btn-mobile"
+                style="font-size:11px;padding:5px 16px;width:auto;margin-top:4px">
+          Run deblur
         </button>
       </div>
-    </header>
 
-    <main class="workspace">
-
-      <aside class="panel-controls" aria-label="Filter controls">
+      <!-- Shared scrollable content (mobile: drawer-content | desktop: normal flow) -->
+      <div class="drawer-content">
         <section class="control-section">
           <label class="section-label" for="filter-select">Filter algorithm</label>
           <select id="filter-select" class="select-input">
@@ -333,345 +360,447 @@
         <div class="divider"></div>
 
         <section class="control-section">
-          <button class="btn-primary" id="run-btn">Run deblur</button>
-          <button class="btn-secondary" id="compare-btn">Compare all filters</button>
-          <button class="btn-ghost" id="reset-btn">Reset</button>
+          <button class="btn-primary"    id="run-btn">Run deblur</button>
+          <button class="btn-secondary"  id="compare-btn">Compare all filters</button>
+          <button class="btn-ghost"      id="reset-btn">Reset</button>
         </section>
-      </aside>
+      </div>
+    </aside>
 
-      <section class="panel-images" aria-label="Image viewer">
+    <!-- ══ IMAGE VIEWER ══ -->
+    <section class="panel-images" aria-label="Image viewer" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
 
-        <div class="image-strip" id="image-strip">
-          <div class="image-cell" id="cell-original">
-            <div class="cell-header">
-              <span class="cell-label">Original</span>
-              <div class="image-strip-toolbar" id="image-strip-toolbar">
-                <button class="strip-toggle-btn active" id="toggle-stack" aria-label="Stack vertically" title="Stack">
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="1" y="1" width="14" height="4" rx="1"/>
-                    <rect x="1" y="6" width="14" height="4" rx="1"/>
-                    <rect x="1" y="11" width="14" height="4" rx="1"/>
-                  </svg>
-                </button>
-                <button class="strip-toggle-btn" id="toggle-side" aria-label="Side by side" title="Side by side">
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="1" y="1" width="4" height="14" rx="1"/>
-                    <rect x="6" y="1" width="4" height="14" rx="1"/>
-                    <rect x="11" y="1" width="4" height="14" rx="1"/>
-                  </svg>
-                </button>
-              </div>
-              <button class="cell-action" id="upload-trigger" aria-label="Upload image">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                Upload
-              </button>
-            </div>
-            <div class="cell-canvas-wrap">
-              <canvas id="canvas-original" class="image-canvas"></canvas>
-              <div class="cell-empty" id="empty-original">
-                <div class="empty-icon">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                </div>
-                <p>Drop an image here</p>
-                <p class="empty-sub">or click Upload above</p>
-              </div>
-            </div>
+      <!-- Layout toggle pill (mobile only) -->
+      <div class="image-strip-toolbar" id="image-strip-toolbar">
+        <button class="strip-toggle-btn active" id="toggle-stack" title="Stack">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="1" y="1" width="14" height="4" rx="1"/>
+            <rect x="1" y="6" width="14" height="4" rx="1"/>
+            <rect x="1" y="11" width="14" height="4" rx="1"/>
+          </svg>
+        </button>
+        <button class="strip-toggle-btn" id="toggle-side" title="Side by side">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="1" y="1" width="4" height="14" rx="1"/>
+            <rect x="6" y="1" width="4" height="14" rx="1"/>
+            <rect x="11" y="1" width="4" height="14" rx="1"/>
+          </svg>
+        </button>
+        <div class="strip-toolbar-sep"></div>
+        <button class="strip-toggle-btn" id="images-expand-btn" title="Expand images">
+          <svg id="img-expand-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          <svg id="img-shrink-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+            <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+            <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Image strip -->
+      <div class="image-strip" id="image-strip">
+
+        <div class="image-cell" id="cell-original">
+          <div class="cell-header cell-header-original">
+            <span class="cell-label">Original</span>
+            <button class="cell-action cell-action-upload" id="upload-trigger">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              Upload
+            </button>
+            <span style="width:60px"></span><!-- spacer to balance the label -->
           </div>
-
-          <div class="image-cell" id="cell-blurred">
-            <div class="cell-header">
-              <span class="cell-label">Blurred (simulated)</span>
-              <span class="cell-param" id="blur-param-label"></span>
-            </div>
-            <div class="cell-canvas-wrap">
-              <canvas id="canvas-blurred" class="image-canvas"></canvas>
-              <div class="cell-empty" id="empty-blurred">
-                <p class="empty-sub">Runs after upload</p>
+          <div class="cell-canvas-wrap">
+            <canvas id="canvas-original" class="image-canvas"></canvas>
+            <div class="cell-empty" id="empty-original">
+              <div class="empty-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <path d="M21 15l-5-5L5 21"/>
+                </svg>
               </div>
-            </div>
-          </div>
-
-          <div class="image-cell" id="cell-deblurred">
-            <div class="cell-header">
-              <span class="cell-label" id="deblur-cell-label">Deblurred</span>
-              <button class="cell-action" id="save-btn" aria-label="Save result" style="display:none">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                Save
-              </button>
-            </div>
-            <div class="cell-canvas-wrap">
-              <canvas id="canvas-deblurred" class="image-canvas"></canvas>
-              <div class="cell-empty" id="empty-deblurred">
-                <p class="empty-sub">Runs after upload</p>
-              </div>
+              <p>Drop an image here</p>
+              <p class="empty-sub">or tap Upload above</p>
             </div>
           </div>
         </div>
 
-        <div class="metrics-bar" id="metrics-bar">
-          <div class="metric-chip">
-            <span class="metric-name">PSNR <button class="metric-info-btn" data-tooltip="psnr" aria-label="About PSNR">i</button></span>
-            <span class="metric-value" id="metric-psnr">—</span>
+        <div class="image-cell" id="cell-blurred">
+          <div class="cell-header">
+            <span class="cell-label">Blurred</span>
+            <span class="cell-param" id="blur-param-label"></span>
           </div>
-          <div class="metric-chip">
-            <span class="metric-name">SSIM <button class="metric-info-btn" data-tooltip="ssim" aria-label="About SSIM">i</button></span>
-            <span class="metric-value" id="metric-ssim">—</span>
-          </div>
-          <div class="metric-chip">
-            <span class="metric-name">MSE <button class="metric-info-btn" data-tooltip="mse" aria-label="About MSE">i</button></span>
-            <span class="metric-value" id="metric-mse">—</span>
-          </div>
-          <div class="metric-chip">
-            <span class="metric-name">Std dev Δ <button class="metric-info-btn" data-tooltip="std" aria-label="About Std dev">i</button></span>
-            <span class="metric-value" id="metric-std">—</span>
-          </div>
-          <div class="metric-chip">
-            <span class="metric-name">Time <button class="metric-info-btn" data-tooltip="time" aria-label="About Time">i</button></span>
-            <span class="metric-value" id="metric-time">—</span>
+          <div class="cell-canvas-wrap">
+            <canvas id="canvas-blurred" class="image-canvas"></canvas>
+            <div class="cell-empty" id="empty-blurred">
+              <p class="empty-sub">Runs after upload</p>
+            </div>
           </div>
         </div>
 
-        <input type="file" id="file-input" accept="image/*" style="display:none" />
-      </section>
+        <div class="image-cell" id="cell-deblurred">
+          <div class="cell-header">
+            <span class="cell-label" id="deblur-cell-label">Deblurred</span>
+            <button class="cell-action" id="save-btn" style="display:none">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              Save
+            </button>
+          </div>
+          <div class="cell-canvas-wrap">
+            <canvas id="canvas-deblurred" class="image-canvas"></canvas>
+            <div class="cell-empty" id="empty-deblurred">
+              <p class="empty-sub">Run deblur to see result</p>
+            </div>
+          </div>
+        </div>
 
+      </div><!-- /image-strip -->
+
+      <!-- Paging dots (mobile only) -->
+      <div class="page-dots" id="page-dots">
+        <button class="page-dot active" data-idx="0"></button>
+        <button class="page-dot"        data-idx="1"></button>
+        <button class="page-dot"        data-idx="2"></button>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics-bar" id="metrics-bar">
+        <div class="metric-chip">
+          <span class="metric-name">PSNR <button class="metric-info-btn" data-tooltip="psnr">i</button></span>
+          <span class="metric-value muted" id="metric-psnr">—</span>
+        </div>
+        <div class="metric-chip">
+          <span class="metric-name">SSIM <button class="metric-info-btn" data-tooltip="ssim">i</button></span>
+          <span class="metric-value muted" id="metric-ssim">—</span>
+        </div>
+        <div class="metric-chip">
+          <span class="metric-name">MSE <button class="metric-info-btn" data-tooltip="mse">i</button></span>
+          <span class="metric-value muted" id="metric-mse">—</span>
+        </div>
+        <div class="metric-chip">
+          <span class="metric-name">Std Δ <button class="metric-info-btn" data-tooltip="std">i</button></span>
+          <span class="metric-value muted" id="metric-std">—</span>
+        </div>
+        <div class="metric-chip">
+          <span class="metric-name">Time <button class="metric-info-btn" data-tooltip="time">i</button></span>
+          <span class="metric-value muted" id="metric-time">—</span>
+        </div>
+      </div>
+
+      <input type="file" id="file-input" accept="image/*" style="display:none" />
+    </section>
+
+    <!-- Info panel shell -->
+    <div class="info-panel-shell" id="info-panel-shell">
+      <div class="info-panel-topbar">
+        <span class="info-panel-label">Filter Info</span>
+        <button class="info-action-btn" id="info-fullscreen-btn" title="Expand info panel">
+          <svg id="info-fs-icon-expand" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          <svg id="info-fs-icon-shrink" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+            <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+            <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+          </svg>
+        </button>
+      </div>
       <aside class="panel-info" id="panel-info" aria-label="Filter information"></aside>
-    </main>
-
-    <div class="compare-overlay" id="compare-overlay" style="display:none">
-      <div class="compare-modal">
-        <div class="compare-header">
-          <h2 class="compare-title">All filters — comparison</h2>
-          <button class="compare-close" id="compare-close">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <div class="compare-body" id="compare-body"></div>
-      </div>
     </div>
 
+  </main>
+
+  <!-- Compare overlay -->
+  <div class="compare-overlay" id="compare-overlay" style="display:none">
+    <div class="compare-modal">
+      <div class="compare-header">
+        <h2 class="compare-title">All filters — comparison</h2>
+        <button class="compare-close" id="compare-close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="compare-body" id="compare-body"></div>
+    </div>
   </div>
 
-  <!-- ── Loader script ── -->
-  <script>
-    (function () {
-      const overlay   = document.getElementById('loader-overlay');
-      const fill      = document.getElementById('bar-fill');
-      const pctEl     = document.getElementById('bar-pct');
-      const plane     = document.getElementById('amca-img');
-      const windGroup = document.getElementById('wind-group');
+</div><!-- /app-shell -->
 
-      const DURATION = (3 + Math.random() * 3) * 1000;
+<!-- ── Scripts ── -->
 
-      let barInterval = null;
-      let bobInterval = null;
-      let bobPh = 0;
-
-      function startProgress() {
-        plane.classList.add('loaded');
-        windGroup.classList.add('loaded');
-
-        const startTime = performance.now();
-
-        barInterval = setInterval(function () {
-          const elapsed = performance.now() - startTime;
-          const pct = Math.min(100, (elapsed / DURATION) * 100);
-
-          fill.style.width  = pct.toFixed(1) + '%';
-          pctEl.textContent = Math.round(pct) + '%';
-
-          if (pct >= 100) {
-            clearInterval(barInterval);
-            clearInterval(bobInterval);
-            overlay.classList.add('fade-out');
-            setTimeout(() => overlay.remove(), 500);
-          }
-        }, 50);
-
-        bobInterval = setInterval(function () {
-          bobPh += 0.055;
-          const bob = Math.abs(Math.sin(bobPh)) * 2.5;
-          plane.style.transform = 'scaleX(-1) translateY(' + (-bob).toFixed(2) + 'px)';
-        }, 16);
+<!-- Loader -->
+<script>
+(function () {
+  const overlay = document.getElementById('loader-overlay');
+  const fill    = document.getElementById('bar-fill');
+  const pctEl   = document.getElementById('bar-pct');
+  const plane   = document.getElementById('amca-img');
+  const wg      = document.getElementById('wind-group');
+  const DUR     = (3 + Math.random() * 3) * 1000;
+  let bI, bobI, ph = 0;
+  function go() {
+    plane.classList.add('loaded'); wg.classList.add('loaded');
+    const t0 = performance.now();
+    bI  = setInterval(() => {
+      const p = Math.min(100, ((performance.now()-t0)/DUR)*100);
+      fill.style.width = p.toFixed(1)+'%';
+      pctEl.textContent = Math.round(p)+'%';
+      if (p >= 100) {
+        clearInterval(bI); clearInterval(bobI);
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 500);
       }
+    }, 50);
+    bobI = setInterval(() => {
+      ph += 0.055;
+      plane.style.transform = `scaleX(-1) translateY(${(-Math.abs(Math.sin(ph))*2.5).toFixed(2)}px)`;
+    }, 16);
+  }
+  if (plane.complete && plane.naturalWidth > 0) go();
+  else { plane.addEventListener('load', go); plane.addEventListener('error', go); }
+})();
+</script>
 
-      if (plane.complete && plane.naturalWidth > 0) {
-        startProgress();
+<!-- App JS -->
+<script type="module" src="js/main.js"></script>
+
+<!-- Theme toggle -->
+<script>
+(function () {
+  const btn  = document.getElementById('theme-toggle');
+  const moon = document.getElementById('icon-moon');
+  const sun  = document.getElementById('icon-sun');
+  function apply(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    moon.style.display = dark ? 'none' : 'block';
+    sun.style.display  = dark ? 'block' : 'none';
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }
+  const d0 = document.documentElement.getAttribute('data-theme') === 'dark';
+  moon.style.display = d0 ? 'none' : 'block';
+  sun.style.display  = d0 ? 'block' : 'none';
+  btn.addEventListener('click', () => apply(document.documentElement.getAttribute('data-theme') !== 'dark'));
+})();
+</script>
+
+<!-- Mobile bottom drawer -->
+<script>
+(function () {
+  const isMobile = () => window.innerWidth < 900;
+  const panel  = document.getElementById('panel-controls');
+  const handle = document.getElementById('drawer-handle');
+  const strip  = document.getElementById('image-strip');
+
+  // Mobile run button → trigger the real run-btn
+  const runMobile = document.getElementById('run-btn-mobile');
+  const runReal   = document.getElementById('run-btn');
+  runMobile.addEventListener('click', () => {
+    if (isMobile()) { setOpen(false); runReal.click(); }
+  });
+
+  let open = false;
+  function setOpen(v) {
+    if (!isMobile()) return;
+    open = v;
+    panel.classList.toggle('open', open);
+  }
+
+  handle.addEventListener('click', () => { if (isMobile()) setOpen(!open); });
+
+  // tap image area → close drawer
+  strip.addEventListener('click', () => { if (open && isMobile()) setOpen(false); });
+
+  // on resize: reset drawer state when going to desktop
+  window.addEventListener('resize', () => { if (!isMobile()) panel.classList.remove('open'); });
+})();
+</script>
+
+<!-- Layout toggle + paging dots -->
+<script>
+(function () {
+  const strip  = document.getElementById('image-strip');
+  const bStack = document.getElementById('toggle-stack');
+  const bSide  = document.getElementById('toggle-side');
+  const dots   = document.querySelectorAll('.page-dot');
+
+  function setLayout(mode) {
+    const side = mode === 'side';
+    strip.classList.toggle('side-by-side', side);
+    bSide.classList.toggle('active',  side);
+    bStack.classList.toggle('active', !side);
+    localStorage.setItem('strip-layout', mode);
+    updateDots();
+  }
+
+  setLayout(localStorage.getItem('strip-layout') || 'stack');
+  bStack.addEventListener('click', () => setLayout('stack'));
+  bSide.addEventListener('click',  () => setLayout('side'));
+
+  function updateDots() {
+    const side = strip.classList.contains('side-by-side');
+    let idx = 0;
+    if (side) {
+      // each cell is 88vw
+      idx = Math.round(strip.scrollLeft / (window.innerWidth * 0.88));
+    } else {
+      const cells = strip.querySelectorAll('.image-cell');
+      if (cells.length) idx = Math.round(strip.scrollTop / cells[0].offsetHeight);
+    }
+    idx = Math.max(0, Math.min(idx, dots.length - 1));
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  }
+
+  strip.addEventListener('scroll', updateDots, { passive: true });
+
+  dots.forEach(d => {
+    d.addEventListener('click', () => {
+      const i    = parseInt(d.dataset.idx);
+      const side = strip.classList.contains('side-by-side');
+      if (side) {
+        strip.scrollTo({ left: i * window.innerWidth * 0.88, behavior: 'smooth' });
       } else {
-        plane.addEventListener('load', startProgress);
-        plane.addEventListener('error', startProgress);
+        const cells = strip.querySelectorAll('.image-cell');
+        if (cells[i]) strip.scrollTo({ top: cells[i].offsetTop, behavior: 'smooth' });
       }
-    })();
-  </script>
-
-  <!-- ── App scripts ── -->
-  <script type="module" src="js/main.js"></script>
-
-  <!-- ── Theme toggle ── -->
-  <script>
-    const btn      = document.getElementById('theme-toggle');
-    const moonIcon = document.getElementById('icon-moon');
-    const sunIcon  = document.getElementById('icon-sun');
-
-    function applyTheme(dark) {
-      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-      moonIcon.style.display = dark ? 'none'  : 'block';
-      sunIcon.style.display  = dark ? 'block' : 'none';
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-    }
-
-    const isDarkOnLoad = document.documentElement.getAttribute('data-theme') === 'dark';
-    moonIcon.style.display = isDarkOnLoad ? 'none'  : 'block';
-    sunIcon.style.display  = isDarkOnLoad ? 'block' : 'none';
-
-    btn.addEventListener('click', () => {
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-      applyTheme(!isDark);
     });
-  </script>
+  });
+})();
+</script>
 
-  <!-- ── Mobile image strip layout toggle ── -->
-  <script>
-    (function () {
-      const strip    = document.getElementById('image-strip');
-      const btnStack = document.getElementById('toggle-stack');
-      const btnSide  = document.getElementById('toggle-side');
-
-      function setLayout(mode) {
-        if (mode === 'side') {
-          strip.classList.add('side-by-side');
-          btnSide.classList.add('active');
-          btnStack.classList.remove('active');
-          localStorage.setItem('strip-layout', 'side');
-        } else {
-          strip.classList.remove('side-by-side');
-          btnStack.classList.add('active');
-          btnSide.classList.remove('active');
-          localStorage.setItem('strip-layout', 'stack');
-        }
-      }
-
-      if (localStorage.getItem('strip-layout') === 'side') {
-        setLayout('side');
-      }
-
-      btnStack.addEventListener('click', () => setLayout('stack'));
-      btnSide.addEventListener('click',  () => setLayout('side'));
-    })();
-  </script>
-
-  <!-- ── Welcome Modal ── -->
-  <style>
-    .welcome-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 8888;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.35s ease;
-    }
-    .welcome-backdrop.visible { opacity: 1; }
-
-    .welcome-box {
-      background: var(--bg-primary, #fff);
-      border: 0.5px solid var(--border, #e0e0e0);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.1);
-      border-radius: 4px;
-      padding: 28px 32px 24px;
-      max-width: 480px;
-      width: 90%;
-      transform: translateY(-10px);
-      transition: transform 0.35s ease;
-    }
-    .welcome-backdrop.visible .welcome-box { transform: translateY(0); }
-
-    .welcome-tag {
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-secondary, #888);
-      margin-bottom: 10px;
-    }
-    .welcome-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary, #111);
-      margin-bottom: 14px;
-      line-height: 1.4;
-    }
-    .welcome-body {
-      font-size: 12.5px;
-      color: var(--text-secondary, #555);
-      line-height: 1.75;
-      margin-bottom: 20px;
-    }
-    .welcome-body strong { color: var(--text-primary, #111); font-weight: 500; }
-    .welcome-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 0.5px solid var(--border, #e8e8e8);
-      padding-top: 14px;
-    }
-    .welcome-author { font-size: 10.5px; color: var(--text-secondary, #999); letter-spacing: 0.03em; }
-    .welcome-dismiss {
-      font-size: 11.5px;
-      font-weight: 500;
-      padding: 6px 18px;
-      border: 0.5px solid var(--text-primary, #111);
-      background: transparent;
-      color: var(--text-primary, #111);
-      cursor: pointer;
-      border-radius: 2px;
-      letter-spacing: 0.04em;
-      transition: background 0.15s, color 0.15s;
-    }
-    .welcome-dismiss:hover {
-      background: var(--text-primary, #111);
-      color: var(--bg-primary, #fff);
-    }
-  </style>
-
-  <div class="welcome-backdrop" id="welcome-backdrop">
-    <div class="welcome-box">
-      <div class="welcome-tag">Summer Research Internship '26 · DRDO-IRDE</div>
-      <div class="welcome-title">Rotational Deblurring Pipeline Simulator</div>
-      <div class="welcome-body">
-        Hello! This tool simulates and corrects <strong>rotational motion blur</strong> — the kind that occurs when an airborne camera rotates during image capture.<br><br>
-        <strong>What it does:</strong> Given an image, it synthetically blurs it using configurable angular velocity and exposure time, then applies one of seven deblurring algorithms (Inverse, Wiener, Tikhonov, Richardson-Lucy, Total Variation, Kalman, Blind Deconvolution) and reports quality metrics like PSNR, SSIM, and MSE.<br><br>
-        <strong>How to use:</strong> Upload an image → adjust blur parameters → pick a filter → click <em>Run deblur</em>. Use <em>Compare all filters</em> to benchmark them side by side.
-      </div>
-      <div class="welcome-footer">
-        <span class="welcome-author">Akshat Dimri | NITH EP'2027</span>
-        <button class="welcome-dismiss" id="welcome-dismiss">Got it</button>
-      </div>
+<!-- Welcome modal -->
+<div class="welcome-backdrop" id="welcome-backdrop">
+  <div class="welcome-box">
+    <div class="welcome-tag">Summer Research Internship '26 · DRDO-IRDE</div>
+    <div class="welcome-title">Rotational Deblurring Pipeline Simulator</div>
+    <div class="welcome-body">
+      Hello! This tool simulates and corrects <strong>rotational motion blur</strong> — the kind that occurs when an airborne camera rotates during image capture.<br><br>
+      <strong>What it does:</strong> Given an image, it synthetically blurs it using configurable angular velocity and exposure time, then applies one of seven deblurring algorithms and reports quality metrics (PSNR, SSIM, MSE).<br><br>
+      <strong>Mobile:</strong> swipe up/down between Original → Blurred → Deblurred. Swipe up on the <em>Controls</em> tab at the bottom to adjust parameters.
+    </div>
+    <div class="welcome-footer">
+      <span class="welcome-author">Akshat Dimri | NITH EP'2027</span>
+      <button class="welcome-dismiss" id="welcome-dismiss">Got it</button>
     </div>
   </div>
+</div>
+<script>
+(function () {
+  const bd   = document.getElementById('welcome-backdrop');
+  const btn  = document.getElementById('welcome-dismiss');
+  const chk  = setInterval(() => {
+    if (!document.getElementById('loader-overlay')) {
+      clearInterval(chk);
+      setTimeout(() => bd.classList.add('visible'), 100);
+    }
+  }, 100);
+  btn.addEventListener('click', () => {
+    bd.classList.remove('visible');
+    setTimeout(() => bd.remove(), 350);
+  });
+  bd.addEventListener('click', e => { if (e.target === bd) btn.click(); });
+})();
+</script>
 
-  <script>
-    (function () {
-      const backdrop = document.getElementById('welcome-backdrop');
-      const dismiss  = document.getElementById('welcome-dismiss');
 
-      const loaderCheck = setInterval(() => {
-        if (!document.getElementById('loader-overlay')) {
-          clearInterval(loaderCheck);
-          setTimeout(() => backdrop.classList.add('visible'), 100);
-        }
-      }, 100);
+<!-- Placeholder hide/show patch: converts inline style.display to .is-hidden class -->
+<script>
+(function () {
+  const empties = [
+    document.getElementById('empty-original'),
+    document.getElementById('empty-blurred'),
+    document.getElementById('empty-deblurred'),
+  ];
 
-      dismiss.addEventListener('click', () => {
-        backdrop.classList.remove('visible');
-        setTimeout(() => backdrop.remove(), 350);
-      });
+  empties.forEach(el => {
+    if (!el) return;
+    // Observe style attribute changes made by main.js
+    const obs = new MutationObserver(() => {
+      if (el.style.display === 'none') {
+        el.classList.add('is-hidden');
+        el.style.display = '';   // remove inline style, let class do the work
+      } else if (el.style.display === '' || el.style.display === 'flex') {
+        el.classList.remove('is-hidden');
+        el.style.display = '';
+      }
+    });
+    obs.observe(el, { attributes: true, attributeFilter: ['style'] });
+  });
+})();
+</script>
 
-      backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) dismiss.click();
-      });
-    })();
-  </script>
+
+<!-- Info / Images expand toggle -->
+<script>
+(function () {
+  const shell      = document.getElementById('info-panel-shell');
+  const infoFsBtn  = document.getElementById('info-fullscreen-btn');
+  const fsExpand   = document.getElementById('info-fs-icon-expand');
+  const fsShrink   = document.getElementById('info-fs-icon-shrink');
+  const imgExpBtn  = document.getElementById('images-expand-btn');
+  const imgExpIcon = document.getElementById('img-expand-icon');
+  const imgShrIcon = document.getElementById('img-shrink-icon');
+
+  if (!shell) return;
+
+  // State: 'normal' | 'info-expanded' | 'images-expanded'
+  let state = 'normal';
+
+  function setState(next) {
+    state = next;
+
+    // reset both classes
+    shell.classList.remove('info-expanded', 'images-expanded');
+
+    if (next === 'info-expanded') {
+      shell.classList.add('info-expanded');
+      // info btn → shows shrink icon
+      fsExpand.style.display = 'none';
+      fsShrink.style.display = 'block';
+      // images btn → shows expand icon (i.e. restore)
+      imgExpIcon.style.display = 'block';
+      imgShrIcon.style.display = 'none';
+    } else if (next === 'images-expanded') {
+      shell.classList.add('images-expanded');
+      // info btn → shows expand icon (restore)
+      fsExpand.style.display = 'block';
+      fsShrink.style.display = 'none';
+      // images btn → shows shrink icon
+      imgExpIcon.style.display = 'none';
+      imgShrIcon.style.display = 'block';
+    } else {
+      // normal
+      fsExpand.style.display = 'block';
+      fsShrink.style.display = 'none';
+      imgExpIcon.style.display = 'block';
+      imgShrIcon.style.display = 'none';
+    }
+  }
+
+  // Info fullscreen button
+  infoFsBtn.addEventListener('click', () => {
+    setState(state === 'info-expanded' ? 'normal' : 'info-expanded');
+  });
+
+  // Images expand button
+  if (imgExpBtn) {
+    imgExpBtn.addEventListener('click', () => {
+      setState(state === 'images-expanded' ? 'normal' : 'images-expanded');
+    });
+  }
+
+  // Reset on resize to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 900) setState('normal');
+  });
+})();
+</script>
 
 </body>
 </html>
