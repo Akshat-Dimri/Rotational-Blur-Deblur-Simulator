@@ -4,7 +4,7 @@ An interactive browser-based tool for understanding and comparing image deblurri
 
 Built as part of a summer internship project at **IRDE, DRDO, Dehradun** (May–July 2025).
 
-**Live demo:** `https://akshatdimri.github.io/rotational-deblur`
+**Live demo:** `https://akshat-dimri.github.io/Rotational-Blur-Deblur-Simulator/`
 
 ---
 
